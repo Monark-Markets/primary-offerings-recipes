@@ -132,6 +132,4 @@ data/**
 **/gen/**
 **/dumps/**
 **/cucumber-report.json
-.github/**
 .env
-**/internal/**
