@@ -10,12 +10,10 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      BASE_URL: ${{ secrets.BASE_URL }}
-      ADMIN_BASE_URL: ${{ secrets.ADMIN_BASE_URL }}
+      BASE_URL: ${{ vars.BASE_URL }}
+      ADMIN_BASE_URL: ${{ vars.ADMIN_BASE_URL }}
       ADMIN_API_KEY: ${{ secrets.ADMIN_API_KEY }}
       API_KEY: ${{ secrets.API_KEY }}
-      CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
-      CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
 
     steps:
       - name: Checkout

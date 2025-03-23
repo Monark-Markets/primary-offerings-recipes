@@ -39,9 +39,7 @@ public class ApiClient {
 	private static Map<String, List<String>> getAdminHeaders() {
 		return Map.of(
 				"Content-Type", List.of("application/json"),
-				"Authorization", List.of(config.getAdminApiKey()),
-				"CF-Access-Client-Id", List.of(config.getCfAccessClientId()),
-				"CF-Access-Client-Secret", List.of(config.getCfAccessClientSecret())
+				"Authorization", List.of(config.getAdminApiKey())
 		);
 	}
 

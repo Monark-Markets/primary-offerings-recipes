@@ -133,3 +133,4 @@ data/**
 **/dumps/**
 **/cucumber-report.json
 .env
+dependency-reduced-pom.xml
