@@ -24,8 +24,6 @@ public class Config {
 	private final String adminBaseUrl;
 	private final String apiKey;
 	private final String adminApiKey;
-	private final String cfAccessClientId;
-	private final String cfAccessClientSecret;
 
 	private Config() {
 		this.baseUrl = getRequiredEnv("BASE_URL");
@@ -33,8 +31,6 @@ public class Config {
 
 		this.adminBaseUrl = getRequiredEnv("ADMIN_BASE_URL");
 		this.adminApiKey = getRequiredEnv("ADMIN_API_KEY");
-		this.cfAccessClientId = getRequiredEnv("CF_ACCESS_CLIENT_ID");
-		this.cfAccessClientSecret = getRequiredEnv("CF_ACCESS_CLIENT_SECRET");
 	}
 
 	private static String getEnv(String key, String defaultValue) {

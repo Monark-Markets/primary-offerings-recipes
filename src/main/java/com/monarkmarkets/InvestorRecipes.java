@@ -1,6 +1,7 @@
 package com.monarkmarkets;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.monarkmarkets.dtos.PageResponse;
 import com.monarkmarkets.dtos.investor.AccreditationStatus;
 import com.monarkmarkets.dtos.investor.CreateInvestor;
 import com.monarkmarkets.dtos.investor.IndividualInvestor;
@@ -97,7 +98,11 @@ public class InvestorRecipes {
 								.countryCode("US")
 								.phoneCountryCode("1")
 								.phoneNumber("5551234567")
-								.mailingStreet1("mailing1")
+								.mailingStreet1("123 Main St")
+								.mailingAddressCity("Metropolis")
+								.mailingAddressState("NY")
+								.mailingAddressZipCode("10001")
+								.mailingAddressCountry("US")
 								.citizenship("US")
 								.dateOfBirth(LocalDate.parse("1980-01-01"))
 								.taxId("792-61-0047")
@@ -136,8 +141,9 @@ public class InvestorRecipes {
 	private static List<Questionnaire> getAllQuestionnaires() {
 		try {
 			logger.info("GetAllQuestionnaires *****");
-			return ApiClient.sendRequest("/primary/v1/questionnaire", "GET", null,
-					new TypeReference<>() { });
+			PageResponse<Questionnaire> response = ApiClient.sendRequest("/primary/v1/questionnaire", "GET", null,
+					new TypeReference<PageResponse<Questionnaire>>() { });
+			return response.getItems();
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}

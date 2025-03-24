@@ -39,5 +39,9 @@ public class IndividualInvestor {
 	private String city;
 	private String state;
 	private String zipCode;
+	private String mailingAddressCity;
+	private String mailingAddressState;
+	private String mailingAddressZipCode;
+	private String mailingAddressCountry;
 	private String exemptPayeeCode;
 }

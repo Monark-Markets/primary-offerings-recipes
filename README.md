@@ -15,9 +15,6 @@ This repository contains a collection of **API recipes** demonstrating how to us
    ```
 2. Follow the instructions in each recipe to test the API.
 
-## 📄 License
-[MIT](LICENSE)
-
 ---
 
 💡 **Need Help?** Reach out via our support channels.

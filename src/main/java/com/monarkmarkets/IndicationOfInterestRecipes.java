@@ -26,12 +26,12 @@ public class IndicationOfInterestRecipes {
 		Investor investor = getInvestorByReferenceId(investorReferenceId);
 
 		// Step 2: Get all PreIPO Companies
-		List<PreIPOCompany> allPreIPOCompanies = getAllPreIPOCompanies(investor);
+		List<PreIPOCompany> allPreIPOCompanies = getAllPreIPOCompanies();
 
 		// Step 3: Select one PreIPOCompany from the list,
 		// here we pick one at random for illustration purposes
 		PreIPOCompany preIPOCompany = allPreIPOCompanies.get(random.nextInt(allPreIPOCompanies.size()));
-		logger.info("PreIPOCompany: " + preIPOCompany);
+		logger.info("PreIPOCompany: {}", preIPOCompany);
 
 		// Step 4: Create IoI
 		CreateIndicationOfInterest createIndicationOfInterest = CreateIndicationOfInterest.builder()
@@ -41,7 +41,7 @@ public class IndicationOfInterestRecipes {
 				.currency("USD")
 				.build();
 		IndicationOfInterest indicationOfInterest = createIndicationOfInterest(createIndicationOfInterest);
-		logger.info("IndicationOfInterest: " + indicationOfInterest);
+		logger.info("IndicationOfInterest: {}", indicationOfInterest);
 
 		return indicationOfInterest;
 	}
@@ -56,10 +56,10 @@ public class IndicationOfInterestRecipes {
 		}
 	}
 
-	private static List<PreIPOCompany> getAllPreIPOCompanies(Investor investor) {
+	private static List<PreIPOCompany> getAllPreIPOCompanies() {
 		try {
 			logger.info("GetAllPreIPOCompanies *****");
-			String endpoint = "/primary/v1/pre-ipo-company/investor/" + investor.getId().toString();
+			String endpoint = "/primary/v1/pre-ipo-company";
 			return ApiClient.getAllPaged(endpoint, 25, PreIPOCompany.class);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
