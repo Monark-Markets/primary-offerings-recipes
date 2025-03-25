@@ -17,6 +17,27 @@ We use `.gitattributes` to **protect critical files** (like `README.md` and `.gi
 
 ---
 
+## 🔗 Setting Up the Public Remote
+
+This repo uses two remotes:
+
+- `origin`: the internal/private repository
+- `public`: the public-facing repository
+
+To add the public remote:
+
+```sh
+git remote add public git@github.com:Monark-Markets/primary-offerings-recipes.git
+```
+
+You can verify with:
+
+```sh
+git remote -v
+```
+
+---
+
 ## 🏗 **Adding a New Public Recipe**
 
 ### **1️⃣ Add the Recipe to `main` (Private Repo)**
@@ -74,37 +95,86 @@ Since the internal files are ignored, **they will not be merged into `public-mai
 ---
 
 ## ⚠ **How `.gitattributes` Prevents Overwrites**
-We use `.gitattributes` to **protect** `README.md` and `.gitignore`:
 
-```plaintext
+To ensure files like `README.md` and `.gitignore` in `public-main` are not overwritten by changes in `main`, we use:
+
+```gitattributes
 README.md merge=ours
 .gitignore merge=ours
 ```
+
+This configuration must be placed in the `.gitattributes` file **in the `public-main` branch**.
+
 ### **Effect When Merging `main` into `public-main`**
-- The **public README.md** in `public-main` will remain unchanged, even if the `main` README is different.
-- `.gitignore` rules in `public-main` stay intact, ensuring that ignored files remain excluded.
+- The **public README.md** remains unchanged.
+- The `.gitignore` in `public-main` stays intact.
+- Any other sensitive or public-facing overrides can be handled similarly.
 
 ---
 
-## **🔄 Keeping Everything in Sync**
+## ⛔ **Excluding Specific Files from Public Repo**
+
+Some files (e.g., CI/CD workflows) exist in `main` but should **never be merged** into `public-main`. To prevent this:
+
+1. Remove the file from `public-main`:
+   ```sh
+   git checkout public-main
+   git rm --cached .github/workflows/recipes-daily-build.yml
+   git commit -m "Remove internal workflow from public-main"
+   ```
+
+2. Add it to `.gitignore` in `public-main`:
+   ```
+   .github/workflows/recipes-daily-build.yml
+   ```
+
+3. Optionally protect it further in `.gitattributes`:
+   ```
+   .github/workflows/recipes-daily-build.yml merge=ours
+   ```
+
+---
+
+## 🔄 **Keeping Everything in Sync**
 
 ### **After Adding or Updating Recipes**
-1. **Ensure `main` (private repo) is up to date:**
+1. **Ensure `main` is up to date:**
    ```sh
    git checkout main
    git pull origin main
    ```
 
-2. **Merge `main` into `public-main` (excluding private recipes):**
+2. **Merge `main` into `public-main`:**
    ```sh
    git checkout public-main
    git merge --no-ff main
    git push origin public-main
    ```
 
-3. **Push the clean `public-main` branch to the public repo:**
+3. **Push to the public repo:**
    ```sh
    git push public public-main:main
    ```
 
 ---
+
+## 🧨 Handling Diverged History in Public Repo
+
+Sometimes the public repo's `main` branch gets out of sync with `public-main`. If you get a non-fast-forward error when pushing:
+
+```sh
+git push public public-main:main
+# → error: failed to push some refs to ...
+```
+
+To resolve it (⚠️ only if you're sure `public-main` is the correct version):
+
+```sh
+git push public public-main:main --force
+```
+
+This will **overwrite** the public repo's `main` branch with the contents of `public-main`.
+
+---
+
+💡 **Questions or improvements?** Reach out to the internal development team.
