@@ -134,3 +134,4 @@ data/**
 **/cucumber-report.json
 .env
 dependency-reduced-pom.xml
+.github/workflows/recipes-daily-build.yml
