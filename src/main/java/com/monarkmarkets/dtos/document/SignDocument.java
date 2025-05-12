@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 import java.util.UUID;
 
 /**
- * Model for signing a document.
+ * DTO used to sign a document.
  */
 @Data
 @Builder

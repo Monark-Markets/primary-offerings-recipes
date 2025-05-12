@@ -1,7 +1,5 @@
 package com.monarkmarkets.dtos.investor;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -9,16 +7,32 @@ import lombok.NoArgsConstructor;
 
 import java.util.UUID;
 
+/**
+ * Update Investor represents the information required to update an investor in the primary offering.
+ */
 @Data
 @Builder
-@JsonInclude(JsonInclude.Include.NON_NULL)
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 public class UpdateInvestor {
-	private UUID id;
-	private String investorReferenceId;
-	private QualificationStatus qualificationStatus;
 
-	@JsonProperty("individualInvestor")
-	private IndividualInvestor individualInvestor;
+	/**
+	 * Unique ID of the Investor.
+	 */
+	private UUID id;
+
+	/**
+	 * Represents the unique ID provided by a Partner, used to identify an Investor.
+	 */
+	private String investorReferenceId;
+
+	/**
+	 * Information about the individual investor if this Investor is of that type.
+	 */
+	private ModifyIndividualInvestor individualInvestor;
+
+	/**
+	 * Information about the entity investor if this Investor is of that type.
+	 */
+	private UpdateEntityInvestor entityInvestor;
 }

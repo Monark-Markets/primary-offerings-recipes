@@ -1,8 +1,8 @@
 package com.monarkmarkets;
 
+import com.monarkmarkets.dtos.indicationofinterest.CreateIndicationOfInterest;
+import com.monarkmarkets.dtos.indicationofinterest.IndicationOfInterest;
 import com.monarkmarkets.dtos.investor.Investor;
-import com.monarkmarkets.dtos.ioi.CreateIndicationOfInterest;
-import com.monarkmarkets.dtos.ioi.IndicationOfInterest;
 import com.monarkmarkets.dtos.preipocompany.PreIPOCompany;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

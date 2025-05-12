@@ -33,7 +33,10 @@ public class Config {
 		this.adminApiKey = getRequiredEnv("ADMIN_API_KEY");
 	}
 
-	private static String getEnv(String key, String defaultValue) {
+	private static String getEnv(
+			String key,
+			String defaultValue
+	) {
 		String value = (dotenv != null) ? dotenv.get(key) : null;
 		if (value == null) {
 			value = System.getenv(key);

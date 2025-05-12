@@ -210,7 +210,11 @@ public class ApiClient {
 	/**
 	 * Constructs a paginated URL, correctly handling existing query parameters.
 	 */
-	private static String constructPaginatedUrl(String endpoint, int currentPage, int pageSize) {
+	private static String constructPaginatedUrl(
+			String endpoint,
+			int currentPage,
+			int pageSize
+	) {
 		String baseUrl = config.getBaseUrl();
 
 		if (endpoint.contains("?")) {
@@ -244,7 +248,11 @@ public class ApiClient {
 		if ("POST".equalsIgnoreCase(method)) {
 			builder.POST(HttpRequest.BodyPublishers.ofString(body));
 		} else if ("PUT".equalsIgnoreCase(method)) {
-			builder.PUT(HttpRequest.BodyPublishers.ofString(body));
+			if (body != null) {
+				builder.PUT(HttpRequest.BodyPublishers.ofString(body));
+			} else {
+				builder.PUT(HttpRequest.BodyPublishers.noBody());
+			}
 		} else if ("GET".equalsIgnoreCase(method)) {
 			builder.GET();
 		}

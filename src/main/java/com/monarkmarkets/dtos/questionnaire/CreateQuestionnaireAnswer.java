@@ -1,6 +1,5 @@
 package com.monarkmarkets.dtos.questionnaire;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,17 +10,10 @@ import java.util.UUID;
 
 @Data
 @Builder
-@AllArgsConstructor
 @NoArgsConstructor
-@JsonInclude(JsonInclude.Include.NON_NULL)
+@AllArgsConstructor
 public class CreateQuestionnaireAnswer {
-	private List<CreateQuestionAnswer> createQuestionAnswers;
 	private UUID questionnaireId;
 	private UUID investorId;
-
-	@Data
-	public static class CreateQuestionAnswer {
-		private UUID questionnaireQuestionId;
-		private String value;
-	}
+	private List<CreateQuestionnaireQuestionAnswer> createQuestionAnswers;
 }
