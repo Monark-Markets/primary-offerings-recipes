@@ -5,132 +5,50 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * PreIPOCompanySPV represents the public information provided for a PreIPOCompanySPV in the Primary Offering.
+ */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class PreIPOCompanySPV {
 
-	// ========= Required Fields =========
-
 	/**
 	 * Unique ID associated with an SPV.
-	 * (format: uuid)
 	 */
 	private UUID id;
 
 	/**
 	 * The unique ID of the PreIPOCompany that the SPV is investing into.
-	 * (format: uuid)
 	 */
 	private UUID preIPOCompanyInvestmentId;
 
 	/**
 	 * The PreIPOCompany which the SPV will be investing into.
-	 * (format: uuid)
 	 */
 	private UUID preIPOCompanyId;
 
 	/**
-	 * Gets or sets the Sydecar identifier of the SPV resource.
-	 * (nullable)
+	 * Total amount of capital that will be raised into the SPV.
 	 */
-	private String sydecarId;
+	private Double totalDollarAllocation;
 
 	/**
-	 * Indicates whether this SPV will implement banking via Sydecar.
-	 */
-	private boolean bankingWithSydecar;
-
-	/**
-	 * The unique ID associated with the deal lead.
-	 * (nullable)
-	 */
-	private String leadProfileID;
-
-	/**
-	 * The name of the SPV.
-	 * (nullable)
-	 */
-	private String name;
-
-	/**
-	 * Gets or sets the name of the platform provider.
-	 * (nullable)
-	 */
-	private String platformProvider;
-
-	/**
-	 * Gets or sets the tax form type.
-	 * (nullable)
-	 */
-	private String taxForm;
-
-	/**
-	 * Indicates whether the SPV is using the default Sydecar Master LLC.
-	 */
-	private boolean usingSydecarMasterSeriesLLC;
-
-	/**
-	 * The stage that an SPV is in.
-	 */
-	private MonarkStage monarkStage;
-
-
-	// ========= Optional Fields =========
-
-	/**
-	 * This number describes the total amount of capital that will be raised into the SPV,
-	 * including management fees, commission paid to Partners distributing the SPV, fund admin fees, etc.
-	 * (format: double, nullable)
-	 */
-	private Double totalAllocation;
-
-	/**
-	 * The minimum amount that an Investor can invest into an SPV during a primary offering.
-	 * (format: double, nullable)
+	 * Minimum investment amount during the primary offering.
 	 */
 	private Double minCommitmentAmount;
 
 	/**
-	 * The type of asset that will be held by the PreIPOCompanySPV.
+	 * Name of the SPV.
 	 */
-	private AssetType assetType;
+	private String name;
 
 	/**
-	 * Discount rate if the security type held by the SPV is a SAFE.
-	 * (format: double, nullable)
-	 */
-	private Double discountRate;
-
-	/**
-	 * Security type held by an SPV.
-	 */
-	private SecurityType securityType;
-
-	/**
-	 * The round of an SPV.
-	 */
-	private Round round;
-
-	/**
-	 * Indicates whether the SPV will own 20% or more of the total voting power of stock after closing the transaction.
-	 */
-	private Boolean ownStock;
-
-	/**
-	 * Valuation type.
-	 */
-	private ValuationType valuationType;
-
-	/**
-	 * Describes the implied valuation of the associated PreIPOCompany.
-	 * (format: double)
+	 * Implied valuation of the associated PreIPOCompany.
 	 */
 	private Double valuation;
 
@@ -140,109 +58,64 @@ public class PreIPOCompanySPV {
 	private String synopsis;
 
 	/**
-	 * Longer description of the SPV’s strategy or purpose.
+	 * Longer description of the SPV.
 	 */
 	private String description;
 
 	/**
-	 * A list of notable investors associated with an SPV.
+	 * Notable investors associated with the SPV.
 	 */
 	private List<String> notableInvestors;
 
 	/**
-	 * Indicates whether the SPV offers pro-rata rights.
-	 */
-	private Boolean proRata;
-
-	/**
-	 * Indicates whether the SPV offers information rights.
-	 */
-	private Boolean informationRights;
-
-	/**
-	 * Indicates whether the SPV offers most favored nation (MFN) rights.
-	 */
-	private Boolean mostFavoredNation;
-
-	/**
-	 * A list of notable terms for the SPV.
-	 */
-	private String otherNotableTerms;
-
-	/**
-	 * Full series name for the SPV.
-	 */
-	private String sydecarSeriesName;
-
-	/**
-	 * EIN number for the Series LLC entity.
-	 */
-	private String seriesLLCEIN;
-
-	/**
-	 * The bank account ID associated with the SPV.
-	 */
-	private String leadBankAccountID;
-
-	/**
-	 * Gets or sets the Sydecar Master LLC ID.
-	 */
-	private String sydecarMasterLLCID;
-
-	/**
-	 * The EIN number associated with the Master LLC.
-	 */
-	private String masterLLCEIN;
-
-	/**
-	 * The name of the Master LLC.
+	 * Name of the Master LLC.
 	 */
 	private String masterLLCName;
 
 	/**
-	 * The amount held back for additional costs.
-	 * (format: double, nullable)
-	 */
-	private Double holdbackAmount;
-
-	/**
-	 * The one time, up front management fee charged by the SPV.
-	 * (format: double, nullable)
+	 * One-time upfront management fee charged by the SPV.
 	 */
 	private Double managementFee;
 
 	/**
-	 * The number of years over which the management fee will be paid.
-	 * (format: int32, nullable)
+	 * Number of years the management fee is payable.
 	 */
 	private Integer managementFeeYearsPayable;
 
 	/**
-	 * Funding deadline associated with the primary issuance of an SPV.
-	 * (format: date, nullable)
+	 * ID of the lead profile user.
 	 */
-	private LocalDate fundingDeadline;
+	private UUID leadProfileID;
 
 	/**
-	 * The exemptions claimed by a PreIPOCompanySPV.
+	 * Unique Sydecar ID for the SPV.
 	 */
-	private List<ExemptionClaimed> exemptionsClaimed;
+	private UUID sydecarId;
 
 	/**
-	 * Indicates whether Sydecar is active.
+	 * Whether the SPV banks with Sydecar.
 	 */
-	private Boolean isSydecarActive;
+	private Boolean bankingWithSydecar;
 
 	/**
-	 * Gets or sets the Sydecar stage.
+	 * Whether the SPV uses Sydecar Master Series LLC.
 	 */
-	private SydecarStage sydecarStage;
+	private Boolean usingSydecarMasterSeriesLLC;
 
 	/**
-	 * Additional dates related to the SPV.
-	 * (format: date, nullable)
+	 * Platform provider for the SPV.
 	 */
-	private List<LocalDate> dates;
+	private String platformProvider;
+
+	/**
+	 * Tax form associated with the SPV.
+	 */
+	private String taxForm;
+
+	/**
+	 * Monark stage of the SPV lifecycle.
+	 */
+	private MonarkStage monarkStage;
 
 	/**
 	 * CUSIP assigned to the SPV.
@@ -250,25 +123,14 @@ public class PreIPOCompanySPV {
 	private String cusip;
 
 	/**
-	 * Symbol assigned to the SPV.
+	 * Symbol used for trading the SPV.
 	 */
 	private String tradingSymbol;
 
 	/**
-	 * URL link to a template version of the PreIPOCompanySPV subscription agreement.
+	 * Close date of the SPV.
 	 */
-	private String subscriptionAgreementUrl;
-
-	/**
-	 * A URL link to the operating agreement for a PreIPOCompanySPV.
-	 */
-	private String operatingAgreementUrl;
-
-	/**
-	 * The date that the SPV officially closed.
-	 * (format: date-time, nullable)
-	 */
-	private OffsetDateTime closeDate;
+	private String closeDate;
 
 	/**
 	 * Custodian where SPV shares are held.
@@ -276,92 +138,87 @@ public class PreIPOCompanySPV {
 	private String spvCustodian;
 
 	/**
-	 * The number of shares in the PreIPOCompany that will be held by the SPV.
-	 * (format: double)
+	 * Total share allocation of the SPV.
 	 */
-	private Double preIPOCompanyNumberShares;
+	private Double totalShareAllocation;
 
 	/**
-	 * The number of remaining LP positions in an SPV available to Investors.
-	 * (format: int32)
+	 * Total number of seats in the SPV.
+	 */
+	private Integer totalNumberOfSeats;
+
+	/**
+	 * Number of LP positions remaining.
 	 */
 	private Integer numberOfSeatsRemaining;
 
 	/**
-	 * The remaining dollar amount in a primary fundraise of an SPV.
-	 * (format: double)
+	 * Remaining dollar allocation in the SPV.
 	 */
 	private Double remainingDollarAllocation;
 
 	/**
-	 * The remaining number of shares in a primary fundraise of an SPV.
-	 * (format: double)
+	 * Remaining share allocation in the SPV.
 	 */
-	private Integer remainingShareAllocation;
+	private Double remainingShareAllocation;
 
 	/**
-	 * Indicates whether the SPV will be prefunded.
+	 * Indicates whether the SPV is prefunded.
 	 */
 	private Boolean preFundedInventory;
 
 	/**
-	 * Size, in USD, of the brokerage commission associated with this PreIPOCompanyInvestment.
-	 * (format: double, nullable)
+	 * Total commission in USD after ERA fees.
 	 */
 	private Double totalCommission;
 
 	/**
-	 * The percentage of the TotalCommission that will be paid to MMM Securities LLC.
-	 * (format: double, nullable)
+	 * Commission percentage allocated to Monark.
 	 */
 	private Double monarkCommissionSplit;
 
 	/**
-	 * The percentage of the TotalCommission that will be paid to the Partner distributing the SPV.
-	 * (format: double, nullable)
+	 * Commission percentage allocated to the Partner.
 	 */
 	private Double demandSideCommissionSplit;
 
 	/**
-	 * The percentage of the ManagementFee that will be paid to a Partner distributing the SPV,
-	 * if the Partner is an ERA or RIA.
-	 * (format: double, nullable)
-	 */
-	private Double demandSideFeeSplit;
-
-	/**
-	 * The price per share of the PreIPOCompany, excluding fees, that an investor will pay.
-	 * (format: double, nullable)
+	 * Price per share excluding fees.
 	 */
 	private Double investorPricePerShare;
 
 	/**
-	 * The fee per share of the PreIPOCompany that an Investor will pay on the primary issuance.
-	 * (format: double, nullable)
+	 * Fee per share paid by the investor.
 	 */
 	private Double investorFeePerShare;
 
 	/**
-	 * The total amount per share that an Investor will pay, including fees.
-	 * (format: double, nullable)
+	 * All-in price per share including fees.
 	 */
 	private Double allInPricePerShare;
 
 	/**
+	 * Funding deadline for the SPV.
+	 */
+	private String fundingDeadline;
+
+	/**
+	 * Exemptions claimed under SEC regulations.
+	 */
+	private List<String> exemptionsClaimed;
+
+	/**
+	 * The base documents associated with the SPV (Optional).
+	 */
+	private List<String> documents;
+
+	/**
 	 * SPV account ID.
-	 * (format: int64, nullable)
 	 */
 	private Long spvAccountID;
 
 	/**
-	 * Gets or sets the date and time when the PreIPOCompanySPV was created.
-	 * (format: date-time)
+	 * Name of the PreIPOCompany.
 	 */
-	private OffsetDateTime createdAt;
-
-	/**
-	 * Gets or sets the date and time when the PreIPOCompanySPV was last updated.
-	 * (format: date-time, nullable)
-	 */
-	private OffsetDateTime updatedAt;
+	private String preIPOCompanyName;
 }

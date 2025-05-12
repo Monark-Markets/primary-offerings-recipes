@@ -1,17 +1,17 @@
 package com.monarkmarkets;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.monarkmarkets.dtos.PageResponse;
 import com.monarkmarkets.dtos.investor.AccreditationStatus;
 import com.monarkmarkets.dtos.investor.CreateInvestor;
-import com.monarkmarkets.dtos.investor.IndividualInvestor;
 import com.monarkmarkets.dtos.investor.Investor;
-import com.monarkmarkets.dtos.investor.QualificationStatus;
+import com.monarkmarkets.dtos.investor.InvestorType;
+import com.monarkmarkets.dtos.investor.ModifyIndividualInvestor;
 import com.monarkmarkets.dtos.investor.UpdateInvestor;
 import com.monarkmarkets.dtos.investor.UpdateInvestorAccreditation;
 import com.monarkmarkets.dtos.questionnaire.CreateQuestionnaireAnswer;
+import com.monarkmarkets.dtos.questionnaire.CreateQuestionnaireQuestionAnswer;
 import com.monarkmarkets.dtos.questionnaire.Questionnaire;
 import com.monarkmarkets.dtos.questionnaire.QuestionnaireAnswer;
+import com.monarkmarkets.dtos.questionnaire.QuestionnaireApiResponse;
 import org.apache.commons.text.RandomStringGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +41,7 @@ public class InvestorRecipes {
 		String investorReferenceId = generateInvestorReferenceId();
 		Investor investor = createInvestor(CreateInvestor.builder()
 				.investorReferenceId(investorReferenceId)
+				.type(InvestorType.IndividualInvestor)
 				.build());
 		logger.info("Investor created: {}", investor);
 
@@ -54,18 +55,17 @@ public class InvestorRecipes {
 			for (Questionnaire questionnaire : questionnaires) {
 				logger.info("Questionnaire: {}", questionnaire);
 
-				List<CreateQuestionnaireAnswer.CreateQuestionAnswer> createQuestionAnswers = questionnaire.getQuestions().stream()
-						.map(question -> {
-							CreateQuestionnaireAnswer.CreateQuestionAnswer createQuestionAnswer = new CreateQuestionnaireAnswer.CreateQuestionAnswer();
-							createQuestionAnswer.setQuestionnaireQuestionId(question.getId());
-							createQuestionAnswer.setValue(question.getOptions().get(random.nextInt(question.getOptions().size())));
-							return createQuestionAnswer;
-						})
+				List<CreateQuestionnaireQuestionAnswer> createQuestionAnswers = questionnaire.getQuestions().stream()
+						.map(question -> CreateQuestionnaireQuestionAnswer.builder()
+								.questionnaireQuestionId(question.getId())
+								.value(question.getOptions().get(random.nextInt(question.getOptions().size())))
+								.build())
 						.toList();
-				CreateQuestionnaireAnswer createQuestionnaireAnswer = new CreateQuestionnaireAnswer();
-				createQuestionnaireAnswer.setQuestionnaireId(questionnaire.getId());
-				createQuestionnaireAnswer.setInvestorId(investor.getId());
-				createQuestionnaireAnswer.setCreateQuestionAnswers(createQuestionAnswers);
+				CreateQuestionnaireAnswer createQuestionnaireAnswer = CreateQuestionnaireAnswer.builder()
+						.questionnaireId(questionnaire.getId())
+						.investorId(investor.getId())
+						.createQuestionAnswers(createQuestionAnswers)
+						.build();
 
 				logger.info("CreateQuestionnaireAnswer: {}", createQuestionnaireAnswer);
 				QuestionnaireAnswer questionnaireAnswer = createQuestionnaireAnswer(createQuestionnaireAnswer);
@@ -84,9 +84,8 @@ public class InvestorRecipes {
 		Investor updatedInvestor = updateInvestor(UpdateInvestor.builder()
 				.id(investor.getId())
 				.investorReferenceId(investor.getInvestorReferenceId())
-				.qualificationStatus(QualificationStatus.QUALIFIED_PURCHASER)
 				.individualInvestor(
-						IndividualInvestor.builder()
+						ModifyIndividualInvestor.builder()
 								.firstName("John")
 								.lastName("Doe")
 								.email("john.doe@example.com")
@@ -104,11 +103,11 @@ public class InvestorRecipes {
 								.mailingAddressZipCode("10001")
 								.mailingAddressCountry("US")
 								.citizenship("US")
-								.dateOfBirth(LocalDate.parse("1980-01-01"))
+								.dateOfBirth(LocalDate.parse("1980-01-01").toString())
 								.taxId("792-61-0047")
 								.passportNumber("X1234567")
-								.subscriptionAdvisorOrERA(true)
-								.usBased(true)
+								.isSubscriptionAdvisorOrERA(true)
+								.isUSBased(true)
 								.build()
 				)
 				.build());
@@ -141,8 +140,8 @@ public class InvestorRecipes {
 	private static List<Questionnaire> getAllQuestionnaires() {
 		try {
 			logger.info("GetAllQuestionnaires *****");
-			PageResponse<Questionnaire> response = ApiClient.sendRequest("/primary/v1/questionnaire", "GET", null,
-					new TypeReference<PageResponse<Questionnaire>>() { });
+			QuestionnaireApiResponse response = ApiClient.sendRequest("/primary/v1/questionnaire", "GET", null,
+					QuestionnaireApiResponse.class);
 			return response.getItems();
 		} catch (Exception e) {
 			throw new RuntimeException(e);

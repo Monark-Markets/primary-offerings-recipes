@@ -1,9 +1,13 @@
 package com.monarkmarkets.dtos.preipocompanyspv;
 
+/**
+ * Enum representing the lifecycle stage of a PreIPOCompanySPV.
+ */
 public enum MonarkStage {
 	DRAFT,
 	WAITING_MONARK_REVIEW,
 	FUND_ADMIN_REVIEW,
+	FUND_ADMIN_APPROVED,
 	PRIMARY_FUNDRAISE,
 	MONARK_DILIGENCE,
 	CLOSE_REQUESTED,

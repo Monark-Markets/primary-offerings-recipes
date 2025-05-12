@@ -1,6 +1,7 @@
 package com.monarkmarkets.dtos;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.monarkmarkets.dtos.common.Pagination;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,15 +17,4 @@ import java.util.List;
 public class PageResponse<T> {
 	private Pagination pagination;
 	private List<T> items;
-
-	@Data
-	@Builder
-	@AllArgsConstructor
-	@NoArgsConstructor
-	@JsonInclude(JsonInclude.Include.NON_NULL)
-	public static class Pagination {
-		private int totalRecords;
-		private int totalPages;
-		private int currentPage;
-	}
 }

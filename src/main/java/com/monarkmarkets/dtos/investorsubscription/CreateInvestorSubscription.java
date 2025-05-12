@@ -7,6 +7,9 @@ import lombok.NoArgsConstructor;
 
 import java.util.UUID;
 
+/**
+ * DTO for creating an InvestorSubscription.
+ */
 @Data
 @Builder
 @NoArgsConstructor
@@ -15,26 +18,21 @@ public class CreateInvestorSubscription {
 
 	/**
 	 * The SPV ID that this Subscription relates to.
-	 * (minLength: 1, format: uuid)
 	 */
 	private UUID preIPOCompanySPVId;
 
 	/**
 	 * ID of the Investor associated with this InvestorSubscription.
-	 * (minLength: 1, format: uuid)
 	 */
 	private UUID investorId;
 
 	/**
-	 * Describes the amount, in dollars, an Investor intends to invest into an SPV.
-	 * (minimum: 0, exclusiveMinimum: true, format: double)
+	 * The amount, in dollars, an Investor intends to invest.
 	 */
-	private Double amountReservedDollars;
+	private double amountReservedDollars;
 
 	/**
-	 * Describes how many underlying shares in the pre-IPO company are associated with this InvestorSubscription.
-	 * This must be a whole number of shares.
-	 * (minimum: 0, exclusiveMinimum: true, format: int32)
+	 * Number of underlying shares associated with this subscription.
 	 */
-	private Integer amountReservedShares;
+	private int amountReservedShares;
 }

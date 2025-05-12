@@ -4,50 +4,60 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.NonNull;
 
 import java.util.UUID;
 
+/**
+ * DTO for tracking actions associated with an InvestorSubscription.
+ */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class InvestorSubscriptionAction {
 
+	/**
+	 * Unique ID of the action.
+	 */
 	private UUID id;
+
+	/**
+	 * ID of the associated InvestorSubscription.
+	 */
 	private UUID investorSubscriptionId;
 
-	@NonNull
+	/**
+	 * Name of this action.
+	 */
 	private String name;
 
+	/**
+	 * Description of the action.
+	 */
 	private String description;
+
+	/**
+	 * Optional Data ID related to the action.
+	 */
 	private String dataId;
 
-	@NonNull
-	private Status status;
+	/**
+	 * Current status of the action.
+	 */
+	private InvestorSubscriptionActionStatus status;
 
-	@NonNull
-	private Type type;
+	/**
+	 * Type of action to be performed.
+	 */
+	private InvestorSubscriptionActionType type;
 
-	@NonNull
+	/**
+	 * Who is responsible for acknowledging completion.
+	 */
 	private ResponsibleParty responsibleParty;
 
-	public enum Status {
-		Pending,
-		Complete
-	}
-
-	public enum Type {
-		Other,
-		DocumentSign,
-		DocumentAcknowledge,
-		CashMovement,
-		ApiCall,
-		KYCAML
-	}
-
-	public enum ResponsibleParty {
-		Partner,
-		Monark
-	}
+	/**
+	 * Text content if this is a text acknowledgement.
+	 */
+	private String actionText;
 }

@@ -4,36 +4,65 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.NonNull;
 
-import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * DTO representing a full InvestorSubscription.
+ */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class InvestorSubscription {
 
+	/**
+	 * Unique ID associated with the subscription.
+	 */
 	private UUID id;
+
+	/**
+	 * The SPV ID that this subscription relates to.
+	 */
 	private UUID preIPOCompanySPVId;
+
+	/**
+	 * ID of the Investor associated with the subscription.
+	 */
 	private UUID investorId;
 
-	@NonNull
-	private Double amountReservedDollars;
+	/**
+	 * The amount, in dollars, the Investor intends to invest.
+	 */
+	private double amountReservedDollars;
 
-	@NonNull
-	private Integer amountReservedShares;
+	/**
+	 * Number of shares the Investor reserves.
+	 */
+	private int amountReservedShares;
 
-	@NonNull
-	private Status status;
+	/**
+	 * Current status of the subscription.
+	 */
+	private InvestorSubscriptionStatus status;
 
-	private LocalDateTime createdAt;
-	private LocalDateTime updatedAt;
+	/**
+	 * Timestamp of creation.
+	 */
+	private String createdAt;
 
-	public enum Status {
-		Pending,
-		Complete,
-		Rejected
-	}
+	/**
+	 * Timestamp of last update (nullable).
+	 */
+	private String updatedAt;
+
+	/**
+	 * Name of the Partner associated with the Investor (nullable).
+	 */
+	private String partnerName;
+
+	/**
+	 * Name of the Investor (nullable).
+	 */
+	private String investorName;
 }

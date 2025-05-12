@@ -1,7 +1,10 @@
 package com.monarkmarkets.dtos.investor;
 
+/**
+ * Accreditation status.
+ */
 public enum AccreditationStatus {
-//	NET_WORTH_GT_1M, // Commented out until new version is deployed in demo with fix
+	NET_WORTH_GT_1M,
 	INDIVIDUAL_INCOME_GT_200K,
 	JOINT_INCOME_GT_300K,
 	PROFESSION_DESIGNATION,

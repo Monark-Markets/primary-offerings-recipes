@@ -5,12 +5,11 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
 /**
- * Partner represents the primary offering information of the investor.
+ * DTO representing a Partner entity.
  */
 @Data
 @Builder
@@ -19,99 +18,97 @@ import java.util.UUID;
 public class Partner {
 
 	/**
-	 * Unique ID, provided by Monark, associated with a Partner.
+	 * Unique ID for the Partner.
 	 */
 	private UUID id;
 
 	/**
-	 * Name of the Partner.
+	 * Display name of the Partner.
 	 */
 	private String name;
 
 	/**
-	 * Type of the Partner.
+	 * Type of the Partner (e.g., BrokerageFirm).
 	 */
 	private PartnerType partnerType;
 
 	/**
-	 * Legal Entity Name of the partner.
+	 * Legal entity name of the Partner.
 	 */
 	private String legalEntityName;
 
 	/**
-	 * ISO Phone Country Code.
-	 */
-	private String primaryPhoneCountryCode;
-
-	/**
-	 * The phone number of the Partner.
-	 */
-	private String primaryPhone;
-
-	/**
-	 * Partner’s street 1 address.
-	 */
-	private String street1;
-
-	/**
-	 * Partner’s secondary street address.
-	 */
-	private String street2;
-
-	/**
-	 * City where the Partner resides.
-	 */
-	private String city;
-
-	/**
-	 * State of the Partner.
-	 */
-	private String state;
-
-	/**
-	 * Zip code of the Partner.
-	 */
-	private String zipCode;
-
-	/**
-	 * Country code of the Partner.
-	 */
-	private String countryCode;
-
-	/**
-	 * Website of the Partner.
-	 */
-	private String website;
-
-	/**
-	 * The primary contact name of the Partner.
+	 * Primary contact name at the Partner organization.
 	 */
 	private String primaryContactName;
 
 	/**
-	 * The primary email address of the Partner.
+	 * Primary email address for contact.
 	 */
 	private String primaryEmail;
 
 	/**
-	 * Executive Team of the Partner.
+	 * Primary phone number.
+	 */
+	private String primaryPhone;
+
+	/**
+	 * Country code for the primary phone number.
+	 */
+	private String primaryPhoneCountryCode;
+
+	/**
+	 * Street address line 1.
+	 */
+	private String street1;
+
+	/**
+	 * Street address line 2 (optional).
+	 */
+	private String street2;
+
+	/**
+	 * City of the address.
+	 */
+	private String city;
+
+	/**
+	 * State of the address.
+	 */
+	private String state;
+
+	/**
+	 * Zip or postal code.
+	 */
+	private String zipCode;
+
+	/**
+	 * ISO country code.
+	 */
+	private String countryCode;
+
+	/**
+	 * Website URL of the Partner.
+	 */
+	private String website;
+
+	/**
+	 * List of executive team members (optional).
 	 */
 	private List<String> executiveTeam;
 
 	/**
-	 * Created at the specified date.
+	 * List of financial institutions associated with the Partner (nullable).
 	 */
-	private LocalDateTime createdAt;
+	private List<FinancialInstitution> financialInstitutions;
 
 	/**
-	 * Updated at the specified date.
+	 * Timestamp of Partner creation.
 	 */
-	private LocalDateTime updatedAt;
+	private String createdAt;
 
 	/**
-	 * Enum representing the type of Partner.
+	 * Timestamp of last update to Partner details.
 	 */
-	public enum PartnerType {
-		BrokerageFirm
-	}
+	private String updatedAt;
 }

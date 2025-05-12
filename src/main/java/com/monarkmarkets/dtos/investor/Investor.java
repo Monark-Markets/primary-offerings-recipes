@@ -1,35 +1,74 @@
 package com.monarkmarkets.dtos.investor;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
+/**
+ * Represents an Investor in the primary offering.
+ */
 @Data
 @Builder
-@JsonInclude(JsonInclude.Include.NON_NULL)
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 public class Investor {
+
+	/**
+	 * Unique ID, provided by Monark, associated with an Investor.
+	 */
 	private UUID id;
-	private String investorReferenceId;
+
+	/**
+	 * ID of the Partner associated with an Investor.
+	 */
 	private UUID partnerId;
 
-	private KycStatus kycStatus;
-	private AccreditationStatus accreditationStatus;
-	private QualificationStatus qualificationStatus;
-	private Status status;
+	/**
+	 * The Financial Institution ID associated with the Investor.
+	 */
+	private UUID financialInstitutionId;
 
-	private LocalDate accreditationUpdatedAt;
-	private LocalDateTime updatedAt;
-	private String kycUpdatedAt;
+	/**
+	 * Updated at the specified date.
+	 */
+	private OffsetDateTime updatedAt;
 
-	@JsonProperty("individualInvestor")
+	/**
+	 * Represents the unique ID provided by a Partner, used to identify an Investor.
+	 */
+	private String investorReferenceId;
+
+	/**
+	 * Status of the Investor.
+	 */
+	private String status;
+
+	/**
+	 * Type of the Investor.
+	 */
+	private InvestorType type;
+
+	/**
+	 * Information about the individual investor if this Investor is of that type.
+	 */
 	private IndividualInvestor individualInvestor;
+
+	/**
+	 * Information about the entity investor if this Investor is of that type.
+	 */
+	private EntityInvestor entityInvestor;
+
+	/**
+	 * The name of the associated partner.
+	 */
+	private String partnerName;
+
+	/**
+	 * The name of the associated Financial Institution.
+	 */
+	private String financialInstitutionName;
 }
