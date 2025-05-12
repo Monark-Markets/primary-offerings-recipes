@@ -5,9 +5,9 @@ import com.monarkmarkets.dtos.document.Document;
 import com.monarkmarkets.dtos.document.SignDocument;
 import com.monarkmarkets.dtos.investorsubscription.CreateInvestorSubscription;
 import com.monarkmarkets.dtos.investorsubscription.InvestorSubscription;
-import com.monarkmarkets.dtos.investorsubscription.InvestorSubscriptionAction;
-import com.monarkmarkets.dtos.investorsubscription.InvestorSubscriptionActionType;
-import com.monarkmarkets.dtos.investorsubscription.ResponsibleParty;
+import com.monarkmarkets.dtos.investorsubscriptionaction.ActionType;
+import com.monarkmarkets.dtos.investorsubscriptionaction.InvestorSubscriptionAction;
+import com.monarkmarkets.dtos.investorsubscriptionaction.ResponsibleParty;
 import com.monarkmarkets.dtos.preipocompanyspv.PreIPOCompanySPV;
 import com.monarkmarkets.dtos.preipocompanyspv.SubscriptionCalculator;
 import com.monarkmarkets.dtos.preipocompanyspv.SubscriptionCalculator.SubscriptionAmount;
@@ -60,7 +60,7 @@ public class InvestorSubscriptionRecipes {
 		// will require document signing
 		List<InvestorSubscriptionAction> requireSigningSubscriptionActions = investorSubscriptionActions.stream()
 				.filter(action ->
-						action.getType() == InvestorSubscriptionActionType.DocumentSign &&
+						action.getType() == ActionType.DocumentSign &&
 								action.getResponsibleParty() == ResponsibleParty.Partner)
 				.toList();
 		requireSigningSubscriptionActions.forEach(action -> {
@@ -78,13 +78,13 @@ public class InvestorSubscriptionRecipes {
 		// Step 5: Document Acknowledge by Id
 		// All InvestorSubscriptionAction that have type=DocumentAcknowledge or type=TextAcknowledge and
 		// responsibleParty=Partner will require document signing
-		List<InvestorSubscriptionAction> documentAcknowlwdgeSubscriptionActions = investorSubscriptionActions.stream()
+		List<InvestorSubscriptionAction> documentAcknowledgeSubscriptionActions = investorSubscriptionActions.stream()
 				.filter(action ->
-						(action.getType() == InvestorSubscriptionActionType.DocumentAcknowledge ||
-								action.getType() == InvestorSubscriptionActionType.TextAcknowledge) &&
+						(action.getType() == ActionType.DocumentAcknowledge ||
+								action.getType() == ActionType.TextAcknowledge) &&
 								action.getResponsibleParty() == ResponsibleParty.Partner)
 				.toList();
-		documentAcknowlwdgeSubscriptionActions.forEach(action -> {
+		documentAcknowledgeSubscriptionActions.forEach(action -> {
 			// Complete the document
 			completeSubscriptionAction(action.getId().toString());
 		});
