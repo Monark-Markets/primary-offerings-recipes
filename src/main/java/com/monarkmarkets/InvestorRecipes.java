@@ -56,10 +56,32 @@ public class InvestorRecipes {
 				logger.info("Questionnaire: {}", questionnaire);
 
 				List<CreateQuestionnaireQuestionAnswer> createQuestionAnswers = questionnaire.getQuestions().stream()
-						.map(question -> CreateQuestionnaireQuestionAnswer.builder()
-								.questionnaireQuestionId(question.getId())
-								.value(question.getOptions().get(random.nextInt(question.getOptions().size())))
-								.build())
+						.map(question -> {
+							if (question.getOptions().isEmpty()) {
+								switch (question.getFormat()) {
+									case Integer:
+										return CreateQuestionnaireQuestionAnswer.builder()
+												.questionnaireQuestionId(question.getId())
+												.value(String.valueOf(random.nextInt(20)))
+												.build();
+									case Boolean:
+										return CreateQuestionnaireQuestionAnswer.builder()
+												.questionnaireQuestionId(question.getId())
+												.value(String.valueOf(random.nextBoolean()))
+												.build();
+									default:
+										return CreateQuestionnaireQuestionAnswer.builder()
+												.questionnaireQuestionId(question.getId())
+												.value(String.valueOf(random.nextInt(2)))
+												.build();
+								}
+							} else {
+								return CreateQuestionnaireQuestionAnswer.builder()
+										.questionnaireQuestionId(question.getId())
+										.value(question.getOptions().get(random.nextInt(question.getOptions().size())))
+										.build();
+							}
+						})
 						.toList();
 				CreateQuestionnaireAnswer createQuestionnaireAnswer = CreateQuestionnaireAnswer.builder()
 						.questionnaireId(questionnaire.getId())

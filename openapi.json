@@ -3,7 +3,7 @@
   "info": {
     "title": "Primary Offering API",
     "description": "Primary Offering API",
-    "version": "1.1.63"
+    "version": "1.1.69"
   },
   "servers": [
     {
@@ -13,21 +13,6 @@
   ],
   "paths": {
     "/primary/v1/document/{id}": {
-      "get": {
-        "description": "New endpoint",
-        "responses": {
-          "200": {
-            "description": "New response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "": ""
-                }
-              }
-            }
-          }
-        }
-      },
       "get": {
         "tags": [
           "Document"
@@ -70,36 +55,6 @@
       }
     },
     "/primary/v1/document": {
-      "get": {
-        "description": "New endpoint",
-        "responses": {
-          "200": {
-            "description": "New response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "": ""
-                }
-              }
-            }
-          }
-        }
-      },
-      "get": {
-        "description": "New endpoint",
-        "responses": {
-          "200": {
-            "description": "New response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "": ""
-                }
-              }
-            }
-          }
-        }
-      },
       "get": {
         "tags": [
           "Document"
@@ -324,10 +279,12 @@
         "tags": [
           "Document"
         ],
+        "summary": "Downloads a document using document ID and token. The document is accessed anonymously using a secure token.",
         "parameters": [
           {
             "name": "id",
             "in": "path",
+            "description": "The Document ID for the document to download.",
             "required": true,
             "schema": {
               "type": "string",
@@ -337,6 +294,7 @@
           {
             "name": "token",
             "in": "path",
+            "description": "The secure token required to access the document.",
             "required": true,
             "schema": {
               "type": "string",
@@ -731,7 +689,7 @@
         "tags": [
           "Investor"
         ],
-        "summary": "Retrieve a paginated list of Investors with optional filtering by status and sorting.",
+        "summary": "Get all Investors.",
         "parameters": [
           {
             "name": "page",
@@ -815,21 +773,6 @@
       }
     },
     "/primary/v1/investor/accreditation": {
-      "get": {
-        "description": "New endpoint",
-        "responses": {
-          "200": {
-            "description": "New response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "": ""
-                }
-              }
-            }
-          }
-        }
-      },
       "put": {
         "tags": [
           "Investor"
@@ -961,88 +904,15 @@
     },
     "/primary/v1/investor/{investorId}/individual-entity-investor": {
       "get": {
-        "description": "New endpoint",
-        "responses": {
-          "200": {
-            "description": "New response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "": ""
-                }
-              }
-            }
-          }
-        }
-      },
-      "get": {
-        "description": "New endpoint",
-        "responses": {
-          "200": {
-            "description": "New response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "": ""
-                }
-              }
-            }
-          }
-        }
-      },
-      "get": {
-        "description": "New endpoint",
-        "responses": {
-          "200": {
-            "description": "New response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "": ""
-                }
-              }
-            }
-          }
-        }
-      },
-      "get": {
-        "description": "New endpoint",
-        "responses": {
-          "200": {
-            "description": "New response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "": ""
-                }
-              }
-            }
-          }
-        }
-      },
-      "get": {
-        "description": "New endpoint",
-        "responses": {
-          "200": {
-            "description": "New response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "": ""
-                }
-              }
-            }
-          }
-        }
-      },
-      "get": {
         "tags": [
           "Investor"
         ],
+        "summary": "Get an entity's UBO.",
         "parameters": [
           {
             "name": "investorId",
             "in": "path",
+            "description": "ID of the investor to get individual entity investors for.",
             "required": true,
             "schema": {
               "type": "string",
@@ -1052,7 +922,7 @@
         ],
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "Returns the list of individual entity investors.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1070,6 +940,7 @@
         "tags": [
           "Investor"
         ],
+        "summary": "Create an Investor.",
         "parameters": [
           {
             "name": "investorId",
@@ -1106,7 +977,7 @@
             }
           },
           "400": {
-            "description": "Bad Request",
+            "description": "Bad request if required fields are missing.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1124,6 +995,9 @@
                 }
               }
             }
+          },
+          "201": {
+            "description": "The created Investor."
           }
         }
       },
@@ -1131,6 +1005,7 @@
         "tags": [
           "Investor"
         ],
+        "summary": "Update an Investor’s Information.",
         "parameters": [
           {
             "name": "investorId",
@@ -1157,7 +1032,7 @@
         },
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "The Updated Investor.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1167,7 +1042,7 @@
             }
           },
           "400": {
-            "description": "Bad Request",
+            "description": "Bad request if required fields are missing.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1185,6 +1060,9 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Forbidden if questionnaires are not completed."
           }
         }
       }
@@ -1194,10 +1072,12 @@
         "tags": [
           "Investor"
         ],
+        "summary": "Delete a UBO.",
         "parameters": [
           {
             "name": "investorId",
             "in": "path",
+            "description": "ID of the investor that owns the UBO.",
             "required": true,
             "schema": {
               "type": "string",
@@ -1207,6 +1087,7 @@
           {
             "name": "id",
             "in": "path",
+            "description": "ID of the UBO to delete.",
             "required": true,
             "schema": {
               "type": "string",
@@ -1379,6 +1260,41 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/InvestorSubscriptionApiResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "InvestorSubscription"
+        ],
+        "summary": "Updates the order reference for an investor subscription.",
+        "requestBody": {
+          "description": "The request containing the updated order reference information.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/UpdateInvestorSubscriptionOrderReference"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -1659,10 +1575,12 @@
         "tags": [
           "InvestorSubscriptionAction"
         ],
+        "summary": "Complete an InvestorSubscriptionAction.",
         "parameters": [
           {
             "name": "id",
             "in": "path",
+            "description": "The ID of the InvestorSubscriptionAction to complete.",
             "required": true,
             "schema": {
               "type": "string",
@@ -2602,7 +2520,7 @@
                 "FUND_ADMIN_REVIEW",
                 "FUND_ADMIN_APPROVED",
                 "PRIMARY_FUNDRAISE",
-                "MONARK_DILIGENCE",
+                "PRE_CLOSE_REVIEW",
                 "CLOSE_REQUESTED",
                 "CLOSE_IN_PROCESS",
                 "FUNDS_SENT_TO_TARGET",
@@ -4195,7 +4113,10 @@
           "qualifiedStatus": {
             "enum": [
               "QUALIFIED_PURCHASER",
-              "QUALIFIED_CLIENT"
+              "QUALIFIED_CLIENT",
+              "TRUSTEE_QUALIFIED_PURCHASER",
+              "KNOWLEDGEABLE_EMPLOYEE",
+              "KNOWLEDGEABLE_EXECUTIVE"
             ],
             "type": "string",
             "description": "The qualification status of an Investor.",
@@ -4399,7 +4320,10 @@
           "qualifiedStatus": {
             "enum": [
               "QUALIFIED_PURCHASER",
-              "QUALIFIED_CLIENT"
+              "QUALIFIED_CLIENT",
+              "TRUSTEE_QUALIFIED_PURCHASER",
+              "KNOWLEDGEABLE_EMPLOYEE",
+              "KNOWLEDGEABLE_EXECUTIVE"
             ],
             "type": "string",
             "description": "The qualification status of an Investor.",
@@ -4576,7 +4500,10 @@
           "qualifiedStatus": {
             "enum": [
               "QUALIFIED_PURCHASER",
-              "QUALIFIED_CLIENT"
+              "QUALIFIED_CLIENT",
+              "TRUSTEE_QUALIFIED_PURCHASER",
+              "KNOWLEDGEABLE_EMPLOYEE",
+              "KNOWLEDGEABLE_EXECUTIVE"
             ],
             "type": "string",
             "description": "The qualification status of an Investor.",
@@ -4802,6 +4729,11 @@
           "investorName": {
             "type": "string",
             "description": "The investor name for this subscription",
+            "nullable": true
+          },
+          "orderReferenceId": {
+            "type": "string",
+            "description": "The reference ID of an order submitted.",
             "nullable": true
           }
         },
@@ -5139,7 +5071,10 @@
           "qualifiedStatus": {
             "enum": [
               "QUALIFIED_PURCHASER",
-              "QUALIFIED_CLIENT"
+              "QUALIFIED_CLIENT",
+              "TRUSTEE_QUALIFIED_PURCHASER",
+              "KNOWLEDGEABLE_EMPLOYEE",
+              "KNOWLEDGEABLE_EXECUTIVE"
             ],
             "type": "string",
             "description": "The qualification status of an Investor.",
@@ -5174,7 +5109,8 @@
           "legalEntityName",
           "name",
           "partnerType",
-          "primaryContactName",
+          "primaryContactFirstName",
+          "primaryContactLastName",
           "primaryEmail",
           "primaryPhone",
           "primaryPhoneCountryCode",
@@ -5196,7 +5132,8 @@
           },
           "partnerType": {
             "enum": [
-              "BrokerageFirm"
+              "BrokerageFirm",
+              "ThirdPartyManager"
             ],
             "type": "string",
             "description": "Type of the Partner."
@@ -5253,9 +5190,14 @@
             "description": "Website of the Partner.",
             "nullable": true
           },
-          "primaryContactName": {
+          "primaryContactFirstName": {
             "type": "string",
-            "description": "The primary contact name of the Partner.",
+            "description": "The primary contact first name of the Partner.",
+            "nullable": true
+          },
+          "primaryContactLastName": {
+            "type": "string",
+            "description": "The primary contact last name of the Partner.",
             "nullable": true
           },
           "primaryEmail": {
@@ -5270,6 +5212,133 @@
               "type": "string"
             },
             "description": "Executive Team of the partner.",
+            "nullable": true
+          },
+          "primaryCitizenship": {
+            "type": "string",
+            "description": "Citizenship of the primary contact of the Partner.",
+            "nullable": true
+          },
+          "primaryDateOfBirth": {
+            "type": "string",
+            "description": "Date of Birth of the primary contact of the Partner.",
+            "format": "date",
+            "nullable": true
+          },
+          "primaryPassportNumber": {
+            "type": "string",
+            "description": "Passport number of the primary contact of the Partner.",
+            "nullable": true
+          },
+          "taxId": {
+            "type": "string",
+            "description": "TaxId of the Partner.",
+            "nullable": true
+          },
+          "taxClassification": {
+            "enum": [
+              "PARTNERSHIP",
+              "C_CORPORATION",
+              "S_CORPORATION",
+              "DISREGARDED_ENTITY"
+            ],
+            "type": "string",
+            "description": "Tax classification of the Partner.",
+            "nullable": true
+          },
+          "entityType": {
+            "enum": [
+              "SOLE_PROPRIETOR",
+              "SINGLE_MEMBER_LLC",
+              "LLC",
+              "PARTNERSHIP",
+              "C_CORPORATION",
+              "S_CORPORATION",
+              "TRUST",
+              "IRA_OR_TAX_EXEMPT",
+              "NON_US_CORPORATION",
+              "PRIVATE_LIMITED_COMPANY",
+              "PUBLIC_LIMITED_COMPANY",
+              "TAX_EXEMPT_ENTITY",
+              "FOREIGN_TRUST",
+              "OTHER"
+            ],
+            "type": "string",
+            "description": "the type of Entity of the Partner.",
+            "nullable": true
+          },
+          "jurisdiction": {
+            "type": "string",
+            "description": "Either a US state or country of incorporation.",
+            "nullable": true
+          },
+          "accreditationStatus": {
+            "enum": [
+              "NET_WORTH_GT_1M",
+              "INDIVIDUAL_INCOME_GT_200K",
+              "JOINT_INCOME_GT_300K",
+              "PROFESSION_DESIGNATION",
+              "TRUST_GT_5M",
+              "GRANTORS_ACCREDITED",
+              "EQUITY_OWNERS_ACCREDITED",
+              "TOTAL_ASSETS_GT_5M",
+              "INVESTMENT_COMPANY",
+              "SEC_OR_EXEMPT_ADVISOR",
+              "KNOWLEDGEABLE_EMPLOYEE",
+              "KNOWLEDGEABLE_EXECUTIVE",
+              "FAMILY_OFFICE_GT_5M"
+            ],
+            "type": "string",
+            "description": "Accreditation of the Partner.",
+            "nullable": true
+          },
+          "qualificationStatus": {
+            "enum": [
+              "QUALIFIED_PURCHASER",
+              "QUALIFIED_CLIENT",
+              "TRUSTEE_QUALIFIED_PURCHASER",
+              "KNOWLEDGEABLE_EMPLOYEE",
+              "KNOWLEDGEABLE_EXECUTIVE"
+            ],
+            "type": "string",
+            "description": "Qualification of the Partner.",
+            "nullable": true
+          },
+          "confirmedW8BenAt": {
+            "type": "string",
+            "description": "Confirmed W8Bebn At of the Partner.",
+            "nullable": true
+          },
+          "affiliatedStatus": {
+            "enum": [
+              "GRANTOR",
+              "TRUSTEE",
+              "BENEFICIARY",
+              "AUTHORIZEDSIGNATORY"
+            ],
+            "type": "string",
+            "description": "Affiliated status of the Partner.",
+            "nullable": true
+          },
+          "reducedTaxTreatyCountryCode": {
+            "type": "string",
+            "description": "Reduced tax Treaty County Code for the Partner.",
+            "nullable": true
+          },
+          "dbaName": {
+            "type": "string",
+            "description": "DBA name for the Partner.",
+            "nullable": true
+          },
+          "numberOfOwners": {
+            "type": "integer",
+            "description": "Number of Owners associated with Partner.",
+            "format": "int32",
+            "nullable": true
+          },
+          "managerTitle": {
+            "type": "string",
+            "description": "Title of the manager for ThirdPartyManager type.",
             "nullable": true
           },
           "createdAt": {
@@ -5497,6 +5566,11 @@
             "type": "string",
             "description": "Date and time when the PreIPOCompany's reference price was last updated.",
             "format": "date-time",
+            "nullable": true
+          },
+          "symbol": {
+            "type": "string",
+            "description": "Unique symbol assigned to this Pre-IPO Company. Each single asset SPV associated with this Pre-IPO Company will have its own, SPV-specific symbol that leverages this symbol as its \"base\".",
             "nullable": true
           }
         },
@@ -6076,7 +6150,7 @@
               "FUND_ADMIN_REVIEW",
               "FUND_ADMIN_APPROVED",
               "PRIMARY_FUNDRAISE",
-              "MONARK_DILIGENCE",
+              "PRE_CLOSE_REVIEW",
               "CLOSE_REQUESTED",
               "CLOSE_IN_PROCESS",
               "FUNDS_SENT_TO_TARGET",
@@ -6098,7 +6172,7 @@
           },
           "tradingSymbol": {
             "type": "string",
-            "description": "Symbol assigned to the SPV. This symbol is created and assigned to the SPV upon its creation.",
+            "description": "Symbol assigned to the SPV. This symbol is created and assigned to the SPV upon its creation. See the [Symbology guide](https://api-docs.monark-markets.com/docs/symbology) for a more detailed description of how symbols are generated.",
             "nullable": true
           },
           "closeDate": {
@@ -6124,7 +6198,7 @@
           },
           "numberOfSeatsRemaining": {
             "type": "integer",
-            "description": "The number of remaining LP positions in an SPV available to Investors. Each time an Investor completes a Subscription, this number decreases by one. Once this number reaches zero, the MonarkStage attribute associated with the SPV will move from “PRIMARY_FUNDRAISE” to “MONARK_DILIGENCE.”",
+            "description": "The number of remaining LP positions in an SPV available to Investors. Each time an Investor completes a Subscription, this number decreases by one. Once this number reaches zero, the MonarkStage attribute associated with the SPV will move from “PRIMARY_FUNDRAISE” to “PRE_CLOSE_REVIEW.”",
             "format": "int32"
           },
           "remainingDollarAllocation": {
@@ -6268,6 +6342,11 @@
           "title": {
             "type": "string",
             "description": "Title represents the display title used for the questionnaire.",
+            "nullable": true
+          },
+          "partnerName": {
+            "type": "string",
+            "description": "Name of the Partner associated with an Investor.",
             "nullable": true
           },
           "questions": {
@@ -6969,7 +7048,10 @@
           "qualifiedStatus": {
             "enum": [
               "QUALIFIED_PURCHASER",
-              "QUALIFIED_CLIENT"
+              "QUALIFIED_CLIENT",
+              "TRUSTEE_QUALIFIED_PURCHASER",
+              "KNOWLEDGEABLE_EMPLOYEE",
+              "KNOWLEDGEABLE_EXECUTIVE"
             ],
             "type": "string",
             "description": "The qualification status of an Investor.",
@@ -7067,6 +7149,26 @@
             ],
             "type": "string",
             "description": "Accreditation status."
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateInvestorSubscriptionOrderReference": {
+        "required": [
+          "investorSubscriptionId",
+          "orderReferenceId"
+        ],
+        "type": "object",
+        "properties": {
+          "investorSubscriptionId": {
+            "minLength": 1,
+            "type": "string",
+            "format": "uuid"
+          },
+          "orderReferenceId": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
           }
         },
         "additionalProperties": false
