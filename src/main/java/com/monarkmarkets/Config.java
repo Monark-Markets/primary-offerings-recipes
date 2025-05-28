@@ -24,6 +24,10 @@ public class Config {
 	private final String adminBaseUrl;
 	private final String apiKey;
 	private final String adminApiKey;
+	private final String alertManagerUrl;
+	private final String alertManagerUser;
+	private final String alertManagerPassword;
+	private final String environment;
 
 	private Config() {
 		this.baseUrl = getRequiredEnv("BASE_URL");
@@ -31,6 +35,12 @@ public class Config {
 
 		this.adminBaseUrl = getRequiredEnv("ADMIN_BASE_URL");
 		this.adminApiKey = getRequiredEnv("ADMIN_API_KEY");
+
+		this.alertManagerUrl = getRequiredEnv("ALERTMANAGER_URL");
+		this.alertManagerUser = getRequiredEnv("ALERTMANAGER_USER");
+		this.alertManagerPassword = getRequiredEnv("ALERTMANAGER_PASSWORD");
+
+		this.environment = getEnv("GITHUB_ENVIRONMENT", "local");
 	}
 
 	private static String getEnv(

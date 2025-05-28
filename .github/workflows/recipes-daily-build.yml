@@ -14,6 +14,10 @@ jobs:
       ADMIN_BASE_URL: ${{ vars.ADMIN_BASE_URL }}
       ADMIN_API_KEY: ${{ secrets.ADMIN_API_KEY }}
       API_KEY: ${{ secrets.API_KEY }}
+      GITHUB_ENVIRONMENT: ${{ github.event.inputs.environment }}
+      ALERTMANAGER_URL: ${{ vars.ALERTMANAGER_URL}}
+      ALERTMANAGER_USER: ${{ secrets.ALERTMANAGER_USER }}
+      ALERTMANAGER_PASSWORD: ${{ secrets.ALERTMANAGER_PASSWORD }}
 
     steps:
       - name: Checkout
@@ -37,5 +41,5 @@ jobs:
         run: |
           mvn -B clean package -Djar.finalName=recipes
 
-      - name: Run API Recipes
-        run: java -jar target/recipes.jar
+      - name: Run Internal API Recipes
+        run: java -cp target/recipes.jar com.monarkmarkets.internal.InternalRecipesRunner
