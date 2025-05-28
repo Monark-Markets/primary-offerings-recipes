@@ -1,6 +1,5 @@
 package com.monarkmarkets.internal;
 
-import com.monarkmarkets.Config;
 import com.monarkmarkets.Recipes;
 import com.monarkmarkets.internal.alert.AlertManager;
 import com.monarkmarkets.internal.alert.AlertManagerConfig;
@@ -13,9 +12,9 @@ public class InternalRecipesRunner {
 	private static final Logger logger = LoggerFactory.getLogger(InternalRecipesRunner.class);
 	private static final AlertManager alertManager = new AlertManager(
 			new AlertManagerConfig(
-					Config.getInstance().getAlertManagerUrl(),
-					Config.getInstance().getAlertManagerUser(),
-					Config.getInstance().getAlertManagerPassword()
+					ConfigInternal.getInstance().getAlertManagerUrl(),
+					ConfigInternal.getInstance().getAlertManagerUser(),
+					ConfigInternal.getInstance().getAlertManagerPassword()
 			));
 
 	public static void main(String[] args) {
@@ -28,7 +27,7 @@ public class InternalRecipesRunner {
 				setMessage("Failed to execute internal recipes due to an error: " + e.getMessage());
 				setDetails(e.getMessage());
 				setSourceComponent("InternalRecipesRunner");
-				setEnvironment(Config.getInstance().getEnvironment());
+				setEnvironment(ConfigInternal.getInstance().getEnvironment());
 				setSeverity("error");
 			}});
 			System.exit(-1);

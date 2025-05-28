@@ -21,29 +21,14 @@ public class Config {
 	private static final Config INSTANCE = new Config();
 
 	private final String baseUrl;
-	private final String adminBaseUrl;
 	private final String apiKey;
-	private final String adminApiKey;
-	private final String alertManagerUrl;
-	private final String alertManagerUser;
-	private final String alertManagerPassword;
-	private final String environment;
 
 	private Config() {
 		this.baseUrl = getRequiredEnv("BASE_URL");
 		this.apiKey = getRequiredEnv("API_KEY");
-
-		this.adminBaseUrl = getRequiredEnv("ADMIN_BASE_URL");
-		this.adminApiKey = getRequiredEnv("ADMIN_API_KEY");
-
-		this.alertManagerUrl = getRequiredEnv("ALERTMANAGER_URL");
-		this.alertManagerUser = getRequiredEnv("ALERTMANAGER_USER");
-		this.alertManagerPassword = getRequiredEnv("ALERTMANAGER_PASSWORD");
-
-		this.environment = getEnv("GITHUB_ENVIRONMENT", "local");
 	}
 
-	private static String getEnv(
+	public static String getEnv(
 			String key,
 			String defaultValue
 	) {
@@ -54,7 +39,7 @@ public class Config {
 		return (value != null) ? value : defaultValue;
 	}
 
-	private static String getRequiredEnv(String key) {
+	public static String getRequiredEnv(String key) {
 		String value = (dotenv != null) ? dotenv.get(key) : null;
 		if (value == null) {
 			value = System.getenv(key);
