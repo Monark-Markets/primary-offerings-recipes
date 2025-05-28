@@ -36,13 +36,6 @@ public class ApiClient {
 		);
 	}
 
-	private static Map<String, List<String>> getAdminHeaders() {
-		return Map.of(
-				"Content-Type", List.of("application/json"),
-				"Authorization", List.of(config.getAdminApiKey())
-		);
-	}
-
 	/**
 	 * Sends an API request and deserializes the response into a single object.
 	 *
@@ -274,25 +267,5 @@ public class ApiClient {
 		} else {
 			logger.warn("Response is not a valid JSON object or array: {}", responseBody);
 		}
-	}
-
-	public static <T> T sendAdminRequest(
-			String endpoint,
-			String method,
-			Object requestBody,
-			Class<T> responseType
-	) {
-		URI uri = URI.create(config.getAdminBaseUrl() + endpoint);
-		return sendRequestInternal(uri, method, requestBody, getAdminHeaders(), responseType, null);
-	}
-
-	public static <T> T sendAdminRequest(
-			String endpoint,
-			String method,
-			Object requestBody,
-			TypeReference<T> typeReference
-	) {
-		URI uri = URI.create(config.getAdminBaseUrl() + endpoint);
-		return sendRequestInternal(uri, method, requestBody, getAdminHeaders(), null, typeReference);
 	}
 }
