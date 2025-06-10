@@ -3,7 +3,7 @@
   "info": {
     "title": "Primary Offering API",
     "description": "Primary Offering API",
-    "version": "1.1.69"
+    "version": "1.1.86"
   },
   "servers": [
     {
@@ -107,6 +107,14 @@
             }
           },
           {
+            "name": "registeredFundId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
             "name": "documentType",
             "in": "query",
             "description": "Type of document to filter by.",
@@ -163,7 +171,12 @@
                 "PrivatePlacementMemorandum_Monark",
                 "InvestorLogo_Monark",
                 "SubscriptionAgreementPreview_Monark",
-                "DealDiligence_Monark"
+                "DealDiligence_Monark",
+                "NoLienAttestation_Monark",
+                "RegisteredFundSubscriptionAgreement_Monark",
+                "RegisteredFundProspectus_Monark",
+                "RegisteredFundFactCard_Monark",
+                "RegisteredFundQuiltChart_Monark"
               ],
               "type": "string"
             }
@@ -318,6 +331,196 @@
           },
           "403": {
             "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/primary/v1/financial-advisor": {
+      "post": {
+        "tags": [
+          "FinancialAdvisor"
+        ],
+        "summary": "Create a Financial Advisor in the primary offering.",
+        "requestBody": {
+          "description": "create Financial Advisor information.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/CreateFinancialAdvisor"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The newly created Financial Advisor.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinancialAdvisor"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request if required fields are missing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "FinancialAdvisor"
+        ],
+        "summary": "Update an entire Financial Advisor in the primary offering.",
+        "requestBody": {
+          "description": "update Financial Advisor information.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/UpdateFinancialAdvisor"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated Financial Advisor.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinancialAdvisor"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request if required fields are missing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "FinancialAdvisor"
+        ],
+        "summary": "Get all Financial Advisors for the authenticated partner's financial institutions.",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "The page number for pagination.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "The number of items per page.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 25
+            }
+          },
+          {
+            "name": "sortOrder",
+            "in": "query",
+            "description": "The order in which to sort the financial advisors.",
+            "schema": {
+              "enum": [
+                "Ascending",
+                "Descending"
+              ],
+              "type": "string",
+              "default": "Descending"
+            }
+          },
+          {
+            "name": "financialInstitutionId",
+            "in": "query",
+            "description": "Optional filter by Financial Institution ID.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the list of Financial Advisors.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinancialAdvisorApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/primary/v1/financial-advisor/{id}": {
+      "get": {
+        "tags": [
+          "FinancialAdvisor"
+        ],
+        "summary": "Get the Financial Advisor by the specified Id.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Id of the Financial Advisor to find.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the Financial Advisor with the specified Id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinancialAdvisor"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Financial Advisor not found.",
             "content": {
               "application/json": {
                 "schema": {
@@ -940,7 +1143,7 @@
         "tags": [
           "Investor"
         ],
-        "summary": "Create an Investor.",
+        "summary": "Create an entity's UBO.",
         "parameters": [
           {
             "name": "investorId",
@@ -1005,7 +1208,7 @@
         "tags": [
           "Investor"
         ],
-        "summary": "Update an Investor’s Information.",
+        "summary": "Update a UBO's information.",
         "parameters": [
           {
             "name": "investorId",
@@ -1270,7 +1473,7 @@
         "tags": [
           "InvestorSubscription"
         ],
-        "summary": "Updates the order reference for an investor subscription.",
+        "summary": "Update an InvestorSubscription's Order Reference ID.",
         "requestBody": {
           "description": "The request containing the updated order reference information.",
           "content": {
@@ -2849,6 +3052,552 @@
         }
       }
     },
+    "/primary/v1/registered-fund/{id}": {
+      "get": {
+        "tags": [
+          "RegisteredFund"
+        ],
+        "summary": "Get the RegisteredFund by the specified Id.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID of the RegisteredFund to find.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "includeDocuments",
+            "in": "query",
+            "description": "Return associated documents",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the RegisteredFund with the specified Id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisteredFund"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "RegisteredFund not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/primary/v1/registered-fund": {
+      "get": {
+        "tags": [
+          "RegisteredFund"
+        ],
+        "summary": "Get all RegisteredFunds",
+        "parameters": [
+          {
+            "name": "searchTerm",
+            "in": "query",
+            "description": "Search term to filter results on based on 'Name' field",
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          },
+          {
+            "name": "sortOrder",
+            "in": "query",
+            "description": "Which way to sort order, defaults to Descending.",
+            "schema": {
+              "enum": [
+                "Ascending",
+                "Descending"
+              ],
+              "type": "string",
+              "default": "Descending"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Which page number to return.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "The maximum number of items to return in each page, defaults to 25.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 25
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisteredFundApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/primary/v1/registered-fund-subscription": {
+      "post": {
+        "tags": [
+          "RegisteredFundSubscription"
+        ],
+        "summary": "Creates a new registered fund subscription.",
+        "requestBody": {
+          "description": "The subscription creation request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/CreateRegisteredFundSubscription"
+                  }
+                ],
+                "description": "Request model for creating a registered fund subscription."
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisteredFundSubscription"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "RegisteredFundSubscription"
+        ],
+        "summary": "Gets all registered fund subscriptions with optional filtering.",
+        "parameters": [
+          {
+            "name": "registeredFundId",
+            "in": "query",
+            "description": "Optional registered fund ID to filter subscriptions.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "investorId",
+            "in": "query",
+            "description": "Optional investor ID to filter subscriptions.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "description": "Page number for pagination (default: 1).",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Page size for pagination (default: 25).",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 25
+            }
+          },
+          {
+            "name": "sortOrder",
+            "in": "query",
+            "description": "Sort order for results (default: Descending).",
+            "schema": {
+              "enum": [
+                "Ascending",
+                "Descending"
+              ],
+              "type": "string",
+              "default": "Descending"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisteredFundSubscriptionApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/primary/v1/registered-fund-subscription/{id}": {
+      "get": {
+        "tags": [
+          "RegisteredFundSubscription"
+        ],
+        "summary": "Gets a subscription by ID.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The subscription ID.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisteredFundSubscription"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/primary/v1/registered-fund-subscription/{id}/preview": {
+      "post": {
+        "tags": [
+          "RegisteredFundSubscription"
+        ],
+        "summary": "Generates a preview of the subscription document with filled data.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The subscription ID.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/primary/v1/registered-fund-subscription/{id}/sign-investor": {
+      "post": {
+        "tags": [
+          "RegisteredFundSubscription"
+        ],
+        "summary": "Signs the document as an investor.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The subscription ID.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The signature request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SignatureRequest"
+                  }
+                ],
+                "description": "Request model for adding a signature to a document."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisteredFundSubscription"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/primary/v1/registered-fund-subscription/{id}/sign-advisor": {
+      "post": {
+        "tags": [
+          "RegisteredFundSubscription"
+        ],
+        "summary": "Signs the document as a financial advisor.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The subscription ID.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The signature request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SignatureRequest"
+                  }
+                ],
+                "description": "Request model for adding a signature to a document."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisteredFundSubscription"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/primary/v1/registered-fund-subscription/{id}/document": {
+      "get": {
+        "tags": [
+          "RegisteredFundSubscription"
+        ],
+        "summary": "Gets the current document for a subscription based on its status.\nReturns the appropriate document version based on subscription workflow status.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The subscription ID.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
     "/primary/v1/version": {
       "get": {
         "tags": [
@@ -3281,6 +4030,124 @@
         },
         "additionalProperties": false
       },
+      "CreateFinancialAdvisor": {
+        "required": [
+          "branchNumber",
+          "broker",
+          "crdNumber",
+          "firstName",
+          "lastName",
+          "mailingAddress",
+          "mailingCity",
+          "mailingCountryCode",
+          "mailingState",
+          "mailingZipCode",
+          "phoneCountryCode",
+          "phoneNumber",
+          "prefix"
+        ],
+        "type": "object",
+        "properties": {
+          "financialInstitutionId": {
+            "type": "string",
+            "description": "This is the unique identifier of the Institution that the Financial Advisor is attached to.",
+            "format": "uuid"
+          },
+          "crdNumber": {
+            "type": "string",
+            "description": "CRD Number of the Financial Advisor.",
+            "nullable": true
+          },
+          "iardNumber": {
+            "type": "string",
+            "description": "IARD Number of the Financial Advisor.",
+            "nullable": true
+          },
+          "firstName": {
+            "type": "string",
+            "description": "Financial Advisor first name.",
+            "nullable": true
+          },
+          "middleName": {
+            "type": "string",
+            "description": "Financial advisor middle name.",
+            "nullable": true
+          },
+          "lastName": {
+            "type": "string",
+            "description": "Financial advisor last name.",
+            "nullable": true
+          },
+          "mailingAddress": {
+            "type": "string",
+            "description": "Financial advisor mailing address.",
+            "nullable": true
+          },
+          "mailingCity": {
+            "type": "string",
+            "description": "Financial advisor mailing city.",
+            "nullable": true
+          },
+          "mailingState": {
+            "type": "string",
+            "description": "Financial advisor mailing state.",
+            "nullable": true
+          },
+          "mailingZipCode": {
+            "type": "string",
+            "description": "Financial advisor mailing zip code.",
+            "nullable": true
+          },
+          "mailingCountryCode": {
+            "type": "string",
+            "description": "Financial advisor mailing country code.",
+            "nullable": true
+          },
+          "branchNumber": {
+            "type": "string",
+            "description": "Financial Advisor branch number.",
+            "nullable": true
+          },
+          "phoneCountryCode": {
+            "pattern": "^\\d{1,4}$",
+            "type": "string",
+            "description": "Financial advisor phone country code.",
+            "nullable": true
+          },
+          "phoneNumber": {
+            "pattern": "^\\d{10}$",
+            "type": "string",
+            "description": "Financial advisor phone number.",
+            "nullable": true
+          },
+          "phoneExtension": {
+            "type": "string",
+            "description": "Financial advisor phone number extension.",
+            "nullable": true
+          },
+          "emailAddress": {
+            "type": "string",
+            "description": "Financial advisor email address.",
+            "nullable": true
+          },
+          "fax": {
+            "type": "string",
+            "description": "Financial advisor fax number.",
+            "nullable": true
+          },
+          "prefix": {
+            "type": "string",
+            "description": "Prefix for the Financial Advisor.",
+            "nullable": true
+          },
+          "broker": {
+            "type": "string",
+            "description": "Financial advisor broker.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "CreateIndicationOfInterest": {
         "required": [
           "currency",
@@ -3340,6 +4207,12 @@
           "financialInstitutionId": {
             "type": "string",
             "description": "The Financial Institution ID associated with the Investor.\nIf not provided, the default Financial Institution for the Partner will be used.",
+            "format": "uuid",
+            "nullable": true
+          },
+          "financialAdvisorId": {
+            "type": "string",
+            "description": "The Financial Advisor ID associated with the Investor.",
             "format": "uuid",
             "nullable": true
           },
@@ -3452,6 +4325,34 @@
         "additionalProperties": false,
         "description": "Create the Questionnaire Question Answer."
       },
+      "CreateRegisteredFundSubscription": {
+        "required": [
+          "investorId",
+          "registeredFundId",
+          "subscriptionAmount"
+        ],
+        "type": "object",
+        "properties": {
+          "registeredFundId": {
+            "type": "string",
+            "description": "The Registered Fund to subscribe to.",
+            "format": "uuid"
+          },
+          "investorId": {
+            "type": "string",
+            "description": "The investor making the subscription.",
+            "format": "uuid"
+          },
+          "subscriptionAmount": {
+            "minimum": 0.01,
+            "type": "number",
+            "description": "Amount being invested.",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request model for creating a registered fund subscription."
+      },
       "CreateWebhook": {
         "required": [
           "token",
@@ -3531,6 +4432,12 @@
             "format": "uuid",
             "nullable": true
           },
+          "registeredFundId": {
+            "type": "string",
+            "description": "Unique identifier of the registered fund, if any.",
+            "format": "uuid",
+            "nullable": true
+          },
           "type": {
             "enum": [
               "BUSINESS_FORMATION",
@@ -3584,7 +4491,12 @@
               "PrivatePlacementMemorandum_Monark",
               "InvestorLogo_Monark",
               "SubscriptionAgreementPreview_Monark",
-              "DealDiligence_Monark"
+              "DealDiligence_Monark",
+              "NoLienAttestation_Monark",
+              "RegisteredFundSubscriptionAgreement_Monark",
+              "RegisteredFundProspectus_Monark",
+              "RegisteredFundFactCard_Monark",
+              "RegisteredFundQuiltChart_Monark"
             ],
             "type": "string",
             "description": "The type of Document."
@@ -3731,7 +4643,7 @@
           },
           "state": {
             "type": "string",
-            "description": "State (or region) of the entity. Use valid state/region codes.",
+            "description": "State (or region) of the entity. Use valid state/region codes.\nSee https://github.com/country-regions/country-region-data/blob/master/data.json for valid state codes per country.",
             "nullable": true
           },
           "zipCode": {
@@ -3756,7 +4668,7 @@
           },
           "mailingAddressState": {
             "type": "string",
-            "description": "State mailing address of the entity.",
+            "description": "State mailing address of the entity.\nSee https://github.com/country-regions/country-region-data/blob/master/data.json for valid state codes per country.",
             "nullable": true
           },
           "mailingAddressZipCode": {
@@ -3785,6 +4697,154 @@
         },
         "additionalProperties": false,
         "description": "Represents an entity investor within the primary offering."
+      },
+      "FeeStructure": {
+        "required": [
+          "feeType",
+          "feeValue",
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique ID of the fee structure.",
+            "format": "uuid"
+          },
+          "shareClassId": {
+            "type": "string",
+            "description": "Optional unique ID of the Share Class associated with this Fee Structure.",
+            "format": "uuid",
+            "nullable": true
+          },
+          "registeredFundId": {
+            "type": "string",
+            "description": "Optional unique ID of the Registered Fund associated with this Fee Structure.",
+            "format": "uuid",
+            "nullable": true
+          },
+          "feeType": {
+            "enum": [
+              "MANAGEMENT_FEE",
+              "PERFORMANCE_FEE",
+              "DISTRIBUTION_FEE",
+              "SALES_LOAD",
+              "EARLY_REDEMPTION_FEE"
+            ],
+            "type": "string",
+            "description": "Type of fee"
+          },
+          "feeValue": {
+            "type": "number",
+            "description": "Fee value, typically a percentage",
+            "format": "double"
+          },
+          "description": {
+            "type": "string",
+            "description": "Text field used to describe the fee structure.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Represents a fee structure that can be associated with either a registered fund or a share class."
+      },
+      "FinancialAdvisor": {
+        "required": [
+          "branchNumber",
+          "broker",
+          "crdNumber",
+          "firstName",
+          "lastName",
+          "mailingAddress",
+          "mailingCity",
+          "mailingCountryCode",
+          "mailingState",
+          "mailingZipCode",
+          "phoneCountryCode",
+          "phoneNumber",
+          "prefix"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Gets or sets id represents the unique id of the Financial Advisor on the internal system.",
+            "format": "uuid"
+          },
+          "financialInstitutionId": {
+            "type": "string",
+            "description": "This is the unique identifier of the Institution that the Financial Advisor is attached to.",
+            "format": "uuid"
+          },
+          "crdNumber": {
+            "type": "string",
+            "description": "CRD Number of the Financial Advisor.",
+            "nullable": true
+          },
+          "iardNumber": {
+            "type": "string",
+            "description": "IARD Number of the Financial Advisor.",
+            "nullable": true
+          },
+          "firstName": {
+            "type": "string",
+            "description": "Financial Advisor first name.",
+            "nullable": true
+          },
+          "middleName": {
+            "type": "string",
+            "description": "Financial advisor middle name.",
+            "nullable": true
+          },
+          "lastName": {
+            "type": "string",
+            "description": "Financial advisor last name.",
+            "nullable": true
+          },
+          "mailingCountryCode": {
+            "type": "string",
+            "description": "Financial advisor mailing country code.",
+            "nullable": true
+          },
+          "branchNumber": {
+            "type": "string",
+            "description": "Financial Advisor branch number.",
+            "nullable": true
+          },
+          "prefix": {
+            "type": "string",
+            "description": "Prefix for the Financial Advisor.",
+            "nullable": true
+          },
+          "broker": {
+            "type": "string",
+            "description": "Financial advisor broker.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "FinancialAdvisor represents the financial advisor information."
+      },
+      "FinancialAdvisorApiResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FinancialAdvisor"
+            },
+            "nullable": true
+          },
+          "pagination": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Pagination"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
       },
       "FinancialInstitution": {
         "required": [
@@ -3826,6 +4886,15 @@
             "type": "string",
             "description": "The type of Financial Institution."
           },
+          "kycRequired": {
+            "enum": [
+              "Manual",
+              "Auto",
+              "Bypass"
+            ],
+            "type": "string",
+            "description": "The KYC requirements for the Financial Institution."
+          },
           "isDefault": {
             "type": "boolean",
             "description": "Indicates if this is the default Financial Institution for the Partner."
@@ -3837,7 +4906,7 @@
           },
           "state": {
             "type": "string",
-            "description": "State of the FinancialInstitution.",
+            "description": "State of the FinancialInstitution.\nSee https://github.com/country-regions/country-region-data/blob/master/data.json for valid state codes per country.",
             "nullable": true
           },
           "zipCode": {
@@ -3871,6 +4940,111 @@
           }
         },
         "additionalProperties": false
+      },
+      "FundAdvisor": {
+        "required": [
+          "countryCode",
+          "id",
+          "legalName",
+          "logoUrl",
+          "name",
+          "website"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique ID for fund advisor",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Fund advisor name",
+            "nullable": true
+          },
+          "legalName": {
+            "type": "string",
+            "description": "Fund advisor legal name",
+            "nullable": true
+          },
+          "logoUrl": {
+            "type": "string",
+            "description": "Link to representative logo for fund advisor",
+            "nullable": true
+          },
+          "foundingDate": {
+            "type": "string",
+            "description": "Year when fund advisor firm was first established",
+            "format": "date",
+            "nullable": true
+          },
+          "aum": {
+            "type": "number",
+            "description": "Total AUM of fund advisor",
+            "format": "double",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "description": "Brief description of focus, history, and experience of fund advisor",
+            "nullable": true
+          },
+          "countryCode": {
+            "type": "string",
+            "description": "Central location of fund advisor",
+            "nullable": true
+          },
+          "state": {
+            "type": "string",
+            "description": "State where fund advisor was established",
+            "nullable": true
+          },
+          "city": {
+            "type": "string",
+            "description": "City where fund advisor was established",
+            "nullable": true
+          },
+          "registration": {
+            "enum": [
+              "RIA"
+            ],
+            "type": "string",
+            "description": "Registration or exemption",
+            "nullable": true
+          },
+          "crdNumber": {
+            "type": "string",
+            "description": "CRD number if fund advisor firm is registered",
+            "nullable": true
+          },
+          "website": {
+            "type": "string",
+            "description": "Link to main webpage for fund advisor",
+            "nullable": true
+          },
+          "linkedIn": {
+            "type": "string",
+            "description": "Link to fund advisor's LinkedIn page",
+            "nullable": true
+          },
+          "x": {
+            "type": "string",
+            "description": "Link to fund advisor's X page",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "description": "Email address for general inbox of fund advisor",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "description": "Main office phone number of fund advisor",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "FundAdvisor represents the public information we provide for a Fund Advisor in the Primary Offering."
       },
       "IndicationOfInterest": {
         "required": [
@@ -4063,7 +5237,7 @@
           },
           "mailingAddressState": {
             "type": "string",
-            "description": "Investor's primary mailing address state.",
+            "description": "Investor's primary mailing address state.\nSee https://github.com/country-regions/country-region-data/blob/master/data.json for valid state codes per country.",
             "nullable": true
           },
           "mailingAddressZipCode": {
@@ -4191,7 +5365,7 @@
             "format": "date"
           },
           "street1": {
-            "maxLength": 225,
+            "maxLength": 1000,
             "minLength": 1,
             "type": "string",
             "description": "Investor’s primary address."
@@ -4208,7 +5382,6 @@
             "description": "City where the Investor resides."
           },
           "state": {
-            "maxLength": 20,
             "minLength": 1,
             "type": "string",
             "description": "2/3 letter state code of the investor. Check https://github.com/country-regions/country-region-data/blob/master/data.json for valid state (region) codes"
@@ -4220,7 +5393,6 @@
             "description": "Zip code of the Investor."
           },
           "countryCode": {
-            "maxLength": 4,
             "minLength": 1,
             "type": "string",
             "description": "Country code of the investor. Check\nhttps://github.com/country-regions/country-region-data/blob/master/data.json for valid country codes."
@@ -4239,7 +5411,7 @@
             "description": "An unformatted phone number which does not include country code. Refer to this region data (https://github.com/mukeshsoni/country-telephone-data) to select the correct phone country code. Phone numbers where phone_country_code is \"1\" must have 10 digits."
           },
           "mailingStreet1": {
-            "maxLength": 225,
+            "maxLength": 1000,
             "minLength": 1,
             "type": "string",
             "description": "Investor’s primary mailing address."
@@ -4261,10 +5433,9 @@
             "description": "Investor's primary mailing address city."
           },
           "mailingAddressState": {
-            "maxLength": 20,
             "minLength": 1,
             "type": "string",
-            "description": "Investor's primary mailing address state."
+            "description": "Investor's primary mailing address state.\nSee https://github.com/country-regions/country-region-data/blob/master/data.json for valid state codes per country."
           },
           "mailingAddressZipCode": {
             "maxLength": 20,
@@ -4273,7 +5444,6 @@
             "description": "Investor's primary mailing address zip code."
           },
           "mailingAddressCountry": {
-            "maxLength": 4,
             "minLength": 1,
             "type": "string",
             "description": "Investor's primary mailing address country. Check\nhttps://github.com/country-regions/country-region-data/blob/master/data.json for valid country codes."
@@ -4294,25 +5464,22 @@
           },
           "email": {
             "maxLength": 225,
-            "pattern": "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$",
-            "type": "string",
-            "description": "Email address associated with an Investor.",
-            "format": "email",
-            "nullable": true
-          },
-          "taxId": {
-            "maxLength": 100,
             "minLength": 1,
             "type": "string",
-            "description": "Investor’s Social Security Number."
+            "description": "Email address associated with an Investor."
+          },
+          "taxId": {
+            "type": "string",
+            "description": "Investor’s Social Security Number.",
+            "nullable": true
           },
           "passportNumber": {
+            "maxLength": 100,
             "type": "string",
             "description": "Investor Passport Number. - Only Required for Non-US Investors.",
             "nullable": true
           },
           "citizenship": {
-            "maxLength": 4,
             "minLength": 1,
             "type": "string",
             "description": "Country code of the Investor’s citizenship. Check https://github.com/country-regions/country-region-data/blob/master/data.json for valid country codes"
@@ -4450,7 +5617,7 @@
           },
           "mailingAddressState": {
             "type": "string",
-            "description": "Investor's primary mailing address state.",
+            "description": "Investor's primary mailing address state.\nSee https://github.com/country-regions/country-region-data/blob/master/data.json for valid state codes per country.",
             "nullable": true
           },
           "mailingAddressZipCode": {
@@ -4535,6 +5702,7 @@
       },
       "Investor": {
         "required": [
+          "financialAdvisorId",
           "financialInstitutionId",
           "id",
           "partnerId"
@@ -4554,6 +5722,12 @@
           "financialInstitutionId": {
             "type": "string",
             "description": "The Financial Institution ID associated with the Investor.",
+            "format": "uuid",
+            "nullable": true
+          },
+          "financialAdvisorId": {
+            "type": "string",
+            "description": "The Financial Advisor ID associated with the Investor.",
             "format": "uuid",
             "nullable": true
           },
@@ -4942,7 +6116,7 @@
             "format": "date"
           },
           "street1": {
-            "maxLength": 225,
+            "maxLength": 1000,
             "minLength": 1,
             "type": "string",
             "description": "Investor’s primary address."
@@ -4959,7 +6133,6 @@
             "description": "City where the Investor resides."
           },
           "state": {
-            "maxLength": 20,
             "minLength": 1,
             "type": "string",
             "description": "2/3 letter state code of the investor. Check https://github.com/country-regions/country-region-data/blob/master/data.json for valid state (region) codes"
@@ -4971,7 +6144,6 @@
             "description": "Zip code of the Investor."
           },
           "countryCode": {
-            "maxLength": 4,
             "minLength": 1,
             "type": "string",
             "description": "Country code of the investor. Check\nhttps://github.com/country-regions/country-region-data/blob/master/data.json for valid country codes."
@@ -4990,7 +6162,7 @@
             "description": "An unformatted phone number which does not include country code. Refer to this region data (https://github.com/mukeshsoni/country-telephone-data) to select the correct phone country code. Phone numbers where phone_country_code is \"1\" must have 10 digits."
           },
           "mailingStreet1": {
-            "maxLength": 225,
+            "maxLength": 1000,
             "minLength": 1,
             "type": "string",
             "description": "Investor’s primary mailing address."
@@ -5012,10 +6184,9 @@
             "description": "Investor's primary mailing address city."
           },
           "mailingAddressState": {
-            "maxLength": 20,
             "minLength": 1,
             "type": "string",
-            "description": "Investor's primary mailing address state."
+            "description": "Investor's primary mailing address state.\nSee https://github.com/country-regions/country-region-data/blob/master/data.json for valid state codes per country."
           },
           "mailingAddressZipCode": {
             "maxLength": 20,
@@ -5024,7 +6195,6 @@
             "description": "Investor's primary mailing address zip code."
           },
           "mailingAddressCountry": {
-            "maxLength": 4,
             "minLength": 1,
             "type": "string",
             "description": "Investor's primary mailing address country. Check\nhttps://github.com/country-regions/country-region-data/blob/master/data.json for valid country codes."
@@ -5045,25 +6215,22 @@
           },
           "email": {
             "maxLength": 225,
-            "pattern": "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$",
-            "type": "string",
-            "description": "Email address associated with an Investor.",
-            "format": "email",
-            "nullable": true
-          },
-          "taxId": {
-            "maxLength": 100,
             "minLength": 1,
             "type": "string",
-            "description": "Investor’s Social Security Number."
+            "description": "Email address associated with an Investor."
+          },
+          "taxId": {
+            "type": "string",
+            "description": "Investor’s Social Security Number.",
+            "nullable": true
           },
           "passportNumber": {
+            "maxLength": 100,
             "type": "string",
             "description": "Investor Passport Number. - Only Required for Non-US Investors.",
             "nullable": true
           },
           "citizenship": {
-            "maxLength": 4,
             "minLength": 1,
             "type": "string",
             "description": "Country code of the Investor’s citizenship. Check https://github.com/country-regions/country-region-data/blob/master/data.json for valid country codes"
@@ -5082,6 +6249,83 @@
           }
         },
         "additionalProperties": false
+      },
+      "MonarkStageTransition": {
+        "type": "object",
+        "properties": {
+          "stage": {
+            "enum": [
+              "DRAFT",
+              "WAITING_MONARK_REVIEW",
+              "FUND_ADMIN_REVIEW",
+              "FUND_ADMIN_APPROVED",
+              "PRIMARY_FUNDRAISE",
+              "PRE_CLOSE_REVIEW",
+              "CLOSE_REQUESTED",
+              "CLOSE_IN_PROCESS",
+              "FUNDS_SENT_TO_TARGET",
+              "CLOSED",
+              "REGULATORY_HOLD_PERIOD",
+              "ACTIVELY_TRADING",
+              "CLOSE_FAILED",
+              "HALTED",
+              "LIQUIDATION",
+              "DISSOLVED"
+            ],
+            "type": "string",
+            "description": "The stage the SPV transitioned to."
+          },
+          "timestamp": {
+            "type": "string",
+            "description": "The UTC timestamp when the transition to this stage occurred.",
+            "format": "date-time"
+          },
+          "changedBy": {
+            "type": "string",
+            "description": "Optional identifier of the user or system that triggered the transition.",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "description": "Optional note or reason associated with the stage transition.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Represents a transition of an SPV to a specific stage in its lifecycle."
+      },
+      "NAVReport": {
+        "required": [
+          "id",
+          "nav",
+          "reportDate",
+          "shareClassId"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique ID associated with this NAV report",
+            "format": "uuid"
+          },
+          "shareClassId": {
+            "type": "string",
+            "description": "The ID of the class of shares associated with this NAV report",
+            "format": "uuid"
+          },
+          "reportDate": {
+            "type": "string",
+            "description": "The date of this NAV report",
+            "format": "date"
+          },
+          "nav": {
+            "type": "number",
+            "description": "Most Recent Net Asset Value of the fund",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Represents a NAV (Net Asset Value) report for a share class."
       },
       "Pagination": {
         "type": "object",
@@ -5143,43 +6387,6 @@
             "description": "Legal Entity Name of the partner.",
             "nullable": true
           },
-          "primaryPhoneCountryCode": {
-            "pattern": "^\\d{1,3}$",
-            "type": "string",
-            "description": "ISO Phone Country Code.",
-            "nullable": true
-          },
-          "primaryPhone": {
-            "pattern": "^\\d{10}$",
-            "type": "string",
-            "description": "The phone number of the Partner.",
-            "nullable": true
-          },
-          "street1": {
-            "type": "string",
-            "description": "Partner’s street 1 address.",
-            "nullable": true
-          },
-          "street2": {
-            "type": "string",
-            "description": "Partner’s secondary street address.",
-            "nullable": true
-          },
-          "city": {
-            "type": "string",
-            "description": "City where the Partner resides.",
-            "nullable": true
-          },
-          "state": {
-            "type": "string",
-            "description": "State of the Investor.",
-            "nullable": true
-          },
-          "zipCode": {
-            "type": "string",
-            "description": "Zip code of the Investor.",
-            "nullable": true
-          },
           "countryCode": {
             "type": "string",
             "description": "Country code of the investor.",
@@ -5190,22 +6397,6 @@
             "description": "Website of the Partner.",
             "nullable": true
           },
-          "primaryContactFirstName": {
-            "type": "string",
-            "description": "The primary contact first name of the Partner.",
-            "nullable": true
-          },
-          "primaryContactLastName": {
-            "type": "string",
-            "description": "The primary contact last name of the Partner.",
-            "nullable": true
-          },
-          "primaryEmail": {
-            "type": "string",
-            "description": "The primary email address of the Partner.",
-            "format": "email",
-            "nullable": true
-          },
           "executiveTeam": {
             "type": "array",
             "items": {
@@ -5214,150 +6405,9 @@
             "description": "Executive Team of the partner.",
             "nullable": true
           },
-          "primaryCitizenship": {
-            "type": "string",
-            "description": "Citizenship of the primary contact of the Partner.",
-            "nullable": true
-          },
-          "primaryDateOfBirth": {
-            "type": "string",
-            "description": "Date of Birth of the primary contact of the Partner.",
-            "format": "date",
-            "nullable": true
-          },
-          "primaryPassportNumber": {
-            "type": "string",
-            "description": "Passport number of the primary contact of the Partner.",
-            "nullable": true
-          },
-          "taxId": {
-            "type": "string",
-            "description": "TaxId of the Partner.",
-            "nullable": true
-          },
-          "taxClassification": {
-            "enum": [
-              "PARTNERSHIP",
-              "C_CORPORATION",
-              "S_CORPORATION",
-              "DISREGARDED_ENTITY"
-            ],
-            "type": "string",
-            "description": "Tax classification of the Partner.",
-            "nullable": true
-          },
-          "entityType": {
-            "enum": [
-              "SOLE_PROPRIETOR",
-              "SINGLE_MEMBER_LLC",
-              "LLC",
-              "PARTNERSHIP",
-              "C_CORPORATION",
-              "S_CORPORATION",
-              "TRUST",
-              "IRA_OR_TAX_EXEMPT",
-              "NON_US_CORPORATION",
-              "PRIVATE_LIMITED_COMPANY",
-              "PUBLIC_LIMITED_COMPANY",
-              "TAX_EXEMPT_ENTITY",
-              "FOREIGN_TRUST",
-              "OTHER"
-            ],
-            "type": "string",
-            "description": "the type of Entity of the Partner.",
-            "nullable": true
-          },
-          "jurisdiction": {
-            "type": "string",
-            "description": "Either a US state or country of incorporation.",
-            "nullable": true
-          },
-          "accreditationStatus": {
-            "enum": [
-              "NET_WORTH_GT_1M",
-              "INDIVIDUAL_INCOME_GT_200K",
-              "JOINT_INCOME_GT_300K",
-              "PROFESSION_DESIGNATION",
-              "TRUST_GT_5M",
-              "GRANTORS_ACCREDITED",
-              "EQUITY_OWNERS_ACCREDITED",
-              "TOTAL_ASSETS_GT_5M",
-              "INVESTMENT_COMPANY",
-              "SEC_OR_EXEMPT_ADVISOR",
-              "KNOWLEDGEABLE_EMPLOYEE",
-              "KNOWLEDGEABLE_EXECUTIVE",
-              "FAMILY_OFFICE_GT_5M"
-            ],
-            "type": "string",
-            "description": "Accreditation of the Partner.",
-            "nullable": true
-          },
-          "qualificationStatus": {
-            "enum": [
-              "QUALIFIED_PURCHASER",
-              "QUALIFIED_CLIENT",
-              "TRUSTEE_QUALIFIED_PURCHASER",
-              "KNOWLEDGEABLE_EMPLOYEE",
-              "KNOWLEDGEABLE_EXECUTIVE"
-            ],
-            "type": "string",
-            "description": "Qualification of the Partner.",
-            "nullable": true
-          },
-          "confirmedW8BenAt": {
-            "type": "string",
-            "description": "Confirmed W8Bebn At of the Partner.",
-            "nullable": true
-          },
-          "affiliatedStatus": {
-            "enum": [
-              "GRANTOR",
-              "TRUSTEE",
-              "BENEFICIARY",
-              "AUTHORIZEDSIGNATORY"
-            ],
-            "type": "string",
-            "description": "Affiliated status of the Partner.",
-            "nullable": true
-          },
-          "reducedTaxTreatyCountryCode": {
-            "type": "string",
-            "description": "Reduced tax Treaty County Code for the Partner.",
-            "nullable": true
-          },
           "dbaName": {
             "type": "string",
             "description": "DBA name for the Partner.",
-            "nullable": true
-          },
-          "numberOfOwners": {
-            "type": "integer",
-            "description": "Number of Owners associated with Partner.",
-            "format": "int32",
-            "nullable": true
-          },
-          "managerTitle": {
-            "type": "string",
-            "description": "Title of the manager for ThirdPartyManager type.",
-            "nullable": true
-          },
-          "createdAt": {
-            "type": "string",
-            "description": "Created at the specified date.",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "description": "Updated at the specified date.",
-            "format": "date-time",
-            "nullable": true
-          },
-          "financialInstitutions": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/FinancialInstitution"
-            },
-            "description": "List of financial institutions.",
             "nullable": true
           }
         },
@@ -6269,6 +7319,23 @@
             "type": "string",
             "description": "The name of the parent company.",
             "nullable": true
+          },
+          "manager": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Partner"
+              }
+            ],
+            "description": "The manager details of this SPV.",
+            "nullable": true
+          },
+          "coManagers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Partner"
+            },
+            "description": "List of Co-Managers of this SPV.",
+            "nullable": true
           }
         },
         "additionalProperties": false,
@@ -6438,6 +7505,7 @@
         "required": [
           "explanation",
           "format",
+          "identifier",
           "text"
         ],
         "type": "object",
@@ -6449,7 +7517,7 @@
           },
           "identifier": {
             "type": "string",
-            "description": "Optional identifier for the question.",
+            "description": "Identifier for the question.",
             "nullable": true
           },
           "sequence": {
@@ -6598,6 +7666,412 @@
         "additionalProperties": false,
         "description": "Questionnaire Question Answer."
       },
+      "RegisteredFund": {
+        "required": [
+          "description",
+          "id",
+          "name",
+          "redemptionProcess",
+          "subscriptionProcess",
+          "symbol"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identification number for Registered Fund",
+            "format": "uuid"
+          },
+          "fundAdvisorId": {
+            "type": "string",
+            "description": "ID of underlying fund advisor",
+            "format": "uuid",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Official name of Registered Fund",
+            "nullable": true
+          },
+          "website": {
+            "type": "string",
+            "description": "Fund's website",
+            "nullable": true
+          },
+          "symbol": {
+            "type": "string",
+            "description": "Symbol assigned to this registered fund",
+            "nullable": true
+          },
+          "logoUrl": {
+            "type": "string",
+            "description": "Link to logo for Registered Fund",
+            "nullable": true
+          },
+          "aum": {
+            "type": "number",
+            "description": "Current reported AUM of Registered Fund",
+            "format": "double"
+          },
+          "currency": {
+            "type": "string",
+            "description": "Base currency of the fund",
+            "nullable": true
+          },
+          "assetClass": {
+            "enum": [
+              "PrivateEquity",
+              "PrivateCredit"
+            ],
+            "type": "string",
+            "description": "General asset class the Registered Fund is targeting"
+          },
+          "vintage": {
+            "type": "integer",
+            "description": "First year the fund began fundraising efforts",
+            "format": "int32"
+          },
+          "assetNum": {
+            "type": "integer",
+            "description": "The number of assets held by this fund",
+            "format": "int32",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "description": "Brief description of fund",
+            "nullable": true
+          },
+          "structure": {
+            "enum": [
+              "REIT",
+              "BDC",
+              "TenderOfferFund",
+              "IntervalFund"
+            ],
+            "type": "string",
+            "description": "Structure of the fund"
+          },
+          "fundServEligible": {
+            "type": "boolean",
+            "description": "Is this fund supported by NSCC?"
+          },
+          "act33Exemption": {
+            "type": "string",
+            "description": "Indicates the exemption from the 33' Act used to distribute securities in the Registered Fund",
+            "nullable": true
+          },
+          "subscriptionCadence": {
+            "enum": [
+              "Monthly",
+              "Quarterly",
+              "Annual",
+              "Daily"
+            ],
+            "type": "string",
+            "description": "Subscription cadence of the fund",
+            "nullable": true
+          },
+          "subscriptionProcess": {
+            "type": "string",
+            "description": "Describes the subscription process of the fund",
+            "nullable": true
+          },
+          "redemptionCadence": {
+            "enum": [
+              "Monthly",
+              "Quarterly",
+              "Annual"
+            ],
+            "type": "string",
+            "description": "Redemption cadence of the fund",
+            "nullable": true
+          },
+          "redemptionValue": {
+            "type": "string",
+            "description": "Percent of the fund's NAV that will be processed as a redemption each time the redemption window opens",
+            "nullable": true
+          },
+          "redemptionProcess": {
+            "type": "string",
+            "description": "Describes the redemption process of the fund",
+            "nullable": true
+          },
+          "distributionCadence": {
+            "enum": [
+              "Monthly",
+              "Quarterly",
+              "Annual"
+            ],
+            "type": "string",
+            "description": "Distribution cadence of the fund"
+          },
+          "distributionProcess": {
+            "type": "string",
+            "description": "Describes the fund's process for distributions",
+            "nullable": true
+          },
+          "nonAccreditedInvestor": {
+            "type": "boolean",
+            "description": "Does this registered fund accept non accredited investors?"
+          },
+          "accreditedInvestor": {
+            "type": "boolean",
+            "description": "Does this registered fund require accreditation status?"
+          },
+          "qualifiedClientInvestor": {
+            "type": "boolean",
+            "description": "Does this registered fund require investors to be qualified clients?"
+          },
+          "qualifiedPurchaserInvestor": {
+            "type": "boolean",
+            "description": "Does this registered fund require investors to be qualified purchasers?"
+          },
+          "nonUSInvestor": {
+            "type": "boolean",
+            "description": "Does this registered fund allow for non-US based investors?"
+          },
+          "fundAdvisor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FundAdvisor"
+              }
+            ],
+            "description": "The fund advisor for this registered fund.",
+            "nullable": true
+          },
+          "shareClasses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ShareClass"
+            },
+            "description": "Associated share classes for the fund.",
+            "nullable": true
+          },
+          "feeStructures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FeeStructure"
+            },
+            "description": "Collection of Fee Structures directly associated with this Registered Fund.",
+            "nullable": true
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Document"
+            },
+            "description": "Documents associated with the Registered Fund.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Represents a registered fund."
+      },
+      "RegisteredFundApiResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegisteredFund"
+            },
+            "nullable": true
+          },
+          "pagination": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Pagination"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegisteredFundSubscription": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the subscription.",
+            "format": "uuid"
+          },
+          "registeredFundId": {
+            "type": "string",
+            "description": "The Registered Fund being subscribed to.",
+            "format": "uuid"
+          },
+          "investorId": {
+            "type": "string",
+            "description": "The investor making the subscription.",
+            "format": "uuid"
+          },
+          "subscriptionAmount": {
+            "type": "number",
+            "description": "Amount being invested.",
+            "format": "double"
+          },
+          "status": {
+            "enum": [
+              "Template",
+              "TemplateFilled",
+              "InvestorSigned",
+              "AdvisorSigned"
+            ],
+            "type": "string",
+            "description": "Current status of the document workflow."
+          },
+          "currentDocumentUrl": {
+            "type": "string",
+            "description": "URL to view the current version of the document.",
+            "nullable": true
+          },
+          "investorSignedAt": {
+            "type": "string",
+            "description": "Date when investor signed the document.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "advisorSignedAt": {
+            "type": "string",
+            "description": "Date when advisor signed the document.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "When the subscription was created.",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "When the subscription was last updated.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "registeredFundName": {
+            "type": "string",
+            "description": "The name of the related fund.",
+            "nullable": true
+          },
+          "registeredFundSymbol": {
+            "type": "string",
+            "description": "The symbol of the related fund.",
+            "nullable": true
+          },
+          "investorFullName": {
+            "type": "string",
+            "description": "Full name of the associated investor.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Represents a registered fund subscription."
+      },
+      "RegisteredFundSubscriptionApiResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegisteredFundSubscription"
+            },
+            "nullable": true
+          },
+          "pagination": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Pagination"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ShareClass": {
+        "required": [
+          "id",
+          "name",
+          "registeredFundId"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique ID for share class",
+            "format": "uuid"
+          },
+          "registeredFundId": {
+            "type": "string",
+            "description": "Unique ID of the registered fund associated with this Share Class",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the share class, usually a single letter",
+            "nullable": true
+          },
+          "symbol": {
+            "type": "string",
+            "description": "Symbol applied to this class of shares. Some funds may provide a symbol for the share class.",
+            "nullable": true
+          },
+          "isinOrCusip": {
+            "type": "string",
+            "description": "ISIN or CUSIP identifier",
+            "nullable": true
+          },
+          "accountType": {
+            "type": "string",
+            "description": "Describes the types of accounts that can invest into this Share Class.",
+            "nullable": true
+          },
+          "initialMinimumInvestment": {
+            "type": "number",
+            "description": "The lowest amount of capital that an investor must commit to qualify for this particular share class. If NULL, the share class can accept investments with no minimum",
+            "format": "double",
+            "nullable": true
+          },
+          "initialMaximumInvestment": {
+            "type": "number",
+            "description": "The highest amount of capital that an investor can commit while still remaining within a particular share class. This attribute might be null if there is no cap.",
+            "format": "double",
+            "nullable": true
+          },
+          "subsequentMinimumInvestment": {
+            "type": "number",
+            "description": "The lowest amount of capital that an investor must commit to qualify for this particular share class, if they have already submitted a subscription.",
+            "format": "double",
+            "nullable": true
+          },
+          "subsequentMaximumInvestment": {
+            "type": "number",
+            "description": "The highest amount of capital that an investor can commit while still remaining within a particular share class, if they have already submitted a subscription for this share class. This attribute might be null if there is no cap.",
+            "format": "double",
+            "nullable": true
+          },
+          "feeStructures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FeeStructure"
+            },
+            "description": "Collection of Fee Structures associated with this Share Class.",
+            "nullable": true
+          },
+          "navReports": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NAVReport"
+            },
+            "description": "List of NAV Reports for this share class",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Represents a share class of a registered fund."
+      },
       "ShareDetail": {
         "required": [
           "name"
@@ -6646,6 +8120,22 @@
         },
         "additionalProperties": false,
         "description": "Model for signing a document."
+      },
+      "SignatureRequest": {
+        "required": [
+          "signatureName"
+        ],
+        "type": "object",
+        "properties": {
+          "signatureName": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string",
+            "description": "The name to place as the signature on the document."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request model for adding a signature to a document."
       },
       "UpdateEntityInvestor": {
         "required": [
@@ -6763,10 +8253,9 @@
             "description": "City where the entity is located."
           },
           "state": {
-            "maxLength": 100,
             "minLength": 1,
             "type": "string",
-            "description": "State (or region) of the entity. Use valid state/region codes."
+            "description": "State (or region) of the entity. Use valid state/region codes.\nSee https://github.com/country-regions/country-region-data/blob/master/data.json for valid state codes per country."
           },
           "zipCode": {
             "maxLength": 20,
@@ -6775,7 +8264,6 @@
             "description": "Zip code of the entity."
           },
           "countryCode": {
-            "maxLength": 4,
             "minLength": 1,
             "type": "string",
             "description": "Country code of the entity. Check\nhttps://github.com/country-regions/country-region-data/blob/master/data.json for valid country codes."
@@ -6793,10 +8281,9 @@
             "description": "City mailing address of the entity."
           },
           "mailingAddressState": {
-            "maxLength": 100,
             "minLength": 1,
             "type": "string",
-            "description": "State mailing address of the entity."
+            "description": "State mailing address of the entity.\nSee https://github.com/country-regions/country-region-data/blob/master/data.json for valid state codes per country."
           },
           "mailingAddressZipCode": {
             "maxLength": 20,
@@ -6805,7 +8292,6 @@
             "description": "Zip code mailing address of the entity."
           },
           "mailingAddressCountry": {
-            "maxLength": 4,
             "minLength": 1,
             "type": "string",
             "description": "Country mailing address of the entity. Check\nhttps://github.com/country-regions/country-region-data/blob/master/data.json for valid country codes."
@@ -6822,6 +8308,129 @@
             "type": "string",
             "description": "Trust type (nullable).",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateFinancialAdvisor": {
+        "required": [
+          "branchNumber",
+          "broker",
+          "crdNumber",
+          "firstName",
+          "lastName",
+          "mailingAddress",
+          "mailingCity",
+          "mailingCountryCode",
+          "mailingState",
+          "mailingZipCode",
+          "phoneCountryCode",
+          "phoneNumber",
+          "prefix"
+        ],
+        "type": "object",
+        "properties": {
+          "financialInstitutionId": {
+            "type": "string",
+            "description": "This is the unique identifier of the Institution that the Financial Advisor is attached to.",
+            "format": "uuid"
+          },
+          "crdNumber": {
+            "type": "string",
+            "description": "CRD Number of the Financial Advisor.",
+            "nullable": true
+          },
+          "iardNumber": {
+            "type": "string",
+            "description": "IARD Number of the Financial Advisor.",
+            "nullable": true
+          },
+          "firstName": {
+            "type": "string",
+            "description": "Financial Advisor first name.",
+            "nullable": true
+          },
+          "middleName": {
+            "type": "string",
+            "description": "Financial advisor middle name.",
+            "nullable": true
+          },
+          "lastName": {
+            "type": "string",
+            "description": "Financial advisor last name.",
+            "nullable": true
+          },
+          "mailingAddress": {
+            "type": "string",
+            "description": "Financial advisor mailing address.",
+            "nullable": true
+          },
+          "mailingCity": {
+            "type": "string",
+            "description": "Financial advisor mailing city.",
+            "nullable": true
+          },
+          "mailingState": {
+            "type": "string",
+            "description": "Financial advisor mailing state.",
+            "nullable": true
+          },
+          "mailingZipCode": {
+            "type": "string",
+            "description": "Financial advisor mailing zip code.",
+            "nullable": true
+          },
+          "mailingCountryCode": {
+            "type": "string",
+            "description": "Financial advisor mailing country code.",
+            "nullable": true
+          },
+          "branchNumber": {
+            "type": "string",
+            "description": "Financial Advisor branch number.",
+            "nullable": true
+          },
+          "phoneCountryCode": {
+            "pattern": "^\\d{1,4}$",
+            "type": "string",
+            "description": "Financial advisor phone country code.",
+            "nullable": true
+          },
+          "phoneNumber": {
+            "pattern": "^\\d{10}$",
+            "type": "string",
+            "description": "Financial advisor phone number.",
+            "nullable": true
+          },
+          "phoneExtension": {
+            "type": "string",
+            "description": "Financial advisor phone number extension.",
+            "nullable": true
+          },
+          "emailAddress": {
+            "type": "string",
+            "description": "Financial advisor email address.",
+            "nullable": true
+          },
+          "fax": {
+            "type": "string",
+            "description": "Financial advisor fax number.",
+            "nullable": true
+          },
+          "prefix": {
+            "type": "string",
+            "description": "Prefix for the Financial Advisor.",
+            "nullable": true
+          },
+          "broker": {
+            "type": "string",
+            "description": "Financial advisor broker.",
+            "nullable": true
+          },
+          "id": {
+            "type": "string",
+            "description": "ID of the FinancialAdvisor to edit.",
+            "format": "uuid"
           }
         },
         "additionalProperties": false
@@ -6919,7 +8528,7 @@
             "format": "date"
           },
           "street1": {
-            "maxLength": 225,
+            "maxLength": 1000,
             "minLength": 1,
             "type": "string",
             "description": "Investor’s primary address."
@@ -6936,7 +8545,6 @@
             "description": "City where the Investor resides."
           },
           "state": {
-            "maxLength": 20,
             "minLength": 1,
             "type": "string",
             "description": "2/3 letter state code of the investor. Check https://github.com/country-regions/country-region-data/blob/master/data.json for valid state (region) codes"
@@ -6948,7 +8556,6 @@
             "description": "Zip code of the Investor."
           },
           "countryCode": {
-            "maxLength": 4,
             "minLength": 1,
             "type": "string",
             "description": "Country code of the investor. Check\nhttps://github.com/country-regions/country-region-data/blob/master/data.json for valid country codes."
@@ -6967,7 +8574,7 @@
             "description": "An unformatted phone number which does not include country code. Refer to this region data (https://github.com/mukeshsoni/country-telephone-data) to select the correct phone country code. Phone numbers where phone_country_code is \"1\" must have 10 digits."
           },
           "mailingStreet1": {
-            "maxLength": 225,
+            "maxLength": 1000,
             "minLength": 1,
             "type": "string",
             "description": "Investor’s primary mailing address."
@@ -6989,10 +8596,9 @@
             "description": "Investor's primary mailing address city."
           },
           "mailingAddressState": {
-            "maxLength": 20,
             "minLength": 1,
             "type": "string",
-            "description": "Investor's primary mailing address state."
+            "description": "Investor's primary mailing address state.\nSee https://github.com/country-regions/country-region-data/blob/master/data.json for valid state codes per country."
           },
           "mailingAddressZipCode": {
             "maxLength": 20,
@@ -7001,7 +8607,6 @@
             "description": "Investor's primary mailing address zip code."
           },
           "mailingAddressCountry": {
-            "maxLength": 4,
             "minLength": 1,
             "type": "string",
             "description": "Investor's primary mailing address country. Check\nhttps://github.com/country-regions/country-region-data/blob/master/data.json for valid country codes."
@@ -7022,25 +8627,22 @@
           },
           "email": {
             "maxLength": 225,
-            "pattern": "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$",
-            "type": "string",
-            "description": "Email address associated with an Investor.",
-            "format": "email",
-            "nullable": true
-          },
-          "taxId": {
-            "maxLength": 100,
             "minLength": 1,
             "type": "string",
-            "description": "Investor’s Social Security Number."
+            "description": "Email address associated with an Investor."
+          },
+          "taxId": {
+            "type": "string",
+            "description": "Investor’s Social Security Number.",
+            "nullable": true
           },
           "passportNumber": {
+            "maxLength": 100,
             "type": "string",
             "description": "Investor Passport Number. - Only Required for Non-US Investors.",
             "nullable": true
           },
           "citizenship": {
-            "maxLength": 4,
             "minLength": 1,
             "type": "string",
             "description": "Country code of the Investor’s citizenship. Check https://github.com/country-regions/country-region-data/blob/master/data.json for valid country codes"
@@ -7114,6 +8716,12 @@
               }
             ],
             "description": "Information about the entity investor if this Investor is of that type.",
+            "nullable": true
+          },
+          "financialAdvisorId": {
+            "type": "string",
+            "description": "The Financial Advisor ID associated with the Investor.",
+            "format": "uuid",
             "nullable": true
           }
         },

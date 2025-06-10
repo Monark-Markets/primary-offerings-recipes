@@ -1,27 +1,35 @@
 package com.monarkmarkets;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.monarkmarkets.dtos.document.Document;
-import com.monarkmarkets.dtos.document.SignDocument;
-import com.monarkmarkets.dtos.investorsubscription.CreateInvestorSubscription;
-import com.monarkmarkets.dtos.investorsubscription.InvestorSubscription;
-import com.monarkmarkets.dtos.investorsubscriptionaction.ActionType;
-import com.monarkmarkets.dtos.investorsubscriptionaction.InvestorSubscriptionAction;
-import com.monarkmarkets.dtos.investorsubscriptionaction.ResponsibleParty;
-import com.monarkmarkets.dtos.preipocompanyspv.PreIPOCompanySPV;
-import com.monarkmarkets.dtos.preipocompanyspv.SubscriptionCalculator;
-import com.monarkmarkets.dtos.preipocompanyspv.SubscriptionCalculator.SubscriptionAmount;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.monarkmarkets.SubscriptionCalculator.SubscriptionAmount;
+import com.monarkmarkets.api.primary.webapi.api.DocumentApi;
+import com.monarkmarkets.api.primary.webapi.api.InvestorSubscriptionActionApi;
+import com.monarkmarkets.api.primary.webapi.api.InvestorSubscriptionApi;
+import com.monarkmarkets.api.primary.webapi.api.PreIpoCompanySpvApi;
+import com.monarkmarkets.api.primary.webapi.invoker.ApiException;
+import com.monarkmarkets.api.primary.webapi.model.CreateInvestorSubscription;
+import com.monarkmarkets.api.primary.webapi.model.Document;
+import com.monarkmarkets.api.primary.webapi.model.InvestorSubscription;
+import com.monarkmarkets.api.primary.webapi.model.InvestorSubscriptionAction;
+import com.monarkmarkets.api.primary.webapi.model.Pagination;
+import com.monarkmarkets.api.primary.webapi.model.PreIPOCompanySPV;
+import com.monarkmarkets.api.primary.webapi.model.PreIPOCompanySPVApiResponse;
+import com.monarkmarkets.api.primary.webapi.model.SignDocument;
+import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import static com.monarkmarkets.dtos.preipocompanyspv.MonarkStage.PRIMARY_FUNDRAISE;
+import static com.monarkmarkets.api.primary.webapi.model.PreIPOCompanySPV.MonarkStageEnum.PRIMARY_FUNDRAISE;
 
+@Slf4j
 public class InvestorSubscriptionRecipes {
 
-	private static final Logger logger = LoggerFactory.getLogger(InvestorSubscriptionRecipes.class);
+	private static final PreIpoCompanySpvApi preIpoCompanySpvApi = ApiFactory.getPreIpoCompanySpvApi();
+	private static final InvestorSubscriptionApi investorSubscriptionApi = ApiFactory.getInvestorSubscriptionApi();
+	private static final InvestorSubscriptionActionApi investorSubscriptionActionApi = ApiFactory.getInvestorSubscriptionActionApi();
+	private static final DocumentApi documentApi = ApiFactory.getDocumentApi();
+	private static final InvestorSubscriptionActionApi investorSubscriptionActionApi1 = ApiFactory.getInvestorSubscriptionActionApi();
 
 	/**
 	 * Subscription Creation
@@ -35,7 +43,7 @@ public class InvestorSubscriptionRecipes {
 		// SPVs can only accept Subscriptions from Investors when the MonarkStage field is set to PRIMARY_FUNDRAISE
 		List<PreIPOCompanySPV> preIPOCompanySPVs = getAllPreIPOCompanySPVs(investorId);
 		PreIPOCompanySPV preIPOCompanySPV = choosePreIPOCompanySPV(preIPOCompanySPVs);
-		logger.info("PreIPOCompanySPV: {}", preIPOCompanySPV);
+		log.info("PreIPOCompanySPV: {}", preIPOCompanySPV);
 
 		// Step 1.1: Calculate the Subscription Amount based on the subscription rules
 		SubscriptionAmount amount = SubscriptionCalculator.calculateSubscription(preIPOCompanySPV);
@@ -48,28 +56,28 @@ public class InvestorSubscriptionRecipes {
 				.amountReservedShares(amount.amountReservedShares)
 				.build();
 		InvestorSubscription investorSubscription = createInvestorSubscription(createInvestorSubscription);
-		logger.info("InvestorSubscription: {}", investorSubscription);
+		log.info("InvestorSubscription: {}", investorSubscription);
 
 		// Step 3: Get all SubscriptionActions by Subscription
 		List<InvestorSubscriptionAction> investorSubscriptionActions =
-				getAllInvestorSubscriptionActions(investorSubscription);
-		logger.info("InvestorSubscriptionActions: {}", investorSubscriptionActions);
+				getAllInvestorSubscriptionActions(investorSubscription.getId());
+		log.info("InvestorSubscriptionActions: {}", investorSubscriptionActions);
 
 		// Step 4: Sign Documents by Id
 		// All InvestorSubscriptionAction that have type=DocumentSign and responsibleParty=Partner
 		// will require document signing
 		List<InvestorSubscriptionAction> requireSigningSubscriptionActions = investorSubscriptionActions.stream()
 				.filter(action ->
-						action.getType() == ActionType.DocumentSign &&
-								action.getResponsibleParty() == ResponsibleParty.Partner)
+						action.getType() == InvestorSubscriptionAction.TypeEnum.DOCUMENT_SIGN &&
+								action.getResponsibleParty() == InvestorSubscriptionAction.ResponsiblePartyEnum.PARTNER)
 				.toList();
 		requireSigningSubscriptionActions.forEach(action -> {
 			// Get the document by id
-			Document document = getDocument(action.getDataId());
-			logger.info("Document: {}", document);
+			Document document = getDocument(UUID.fromString(action.getDataId()));
+			log.info("Document: {}", document);
 
 			// Sign the document
-			signDocument(action.getDataId(), SignDocument.builder()
+			signDocument(UUID.fromString(action.getDataId()), SignDocument.builder()
 					.investorId(investorId)
 					.metadata("Some metadata" + UUID.randomUUID())
 					.build());
@@ -80,13 +88,13 @@ public class InvestorSubscriptionRecipes {
 		// responsibleParty=Partner will require document signing
 		List<InvestorSubscriptionAction> documentAcknowledgeSubscriptionActions = investorSubscriptionActions.stream()
 				.filter(action ->
-						(action.getType() == ActionType.DocumentAcknowledge ||
-								action.getType() == ActionType.TextAcknowledge) &&
-								action.getResponsibleParty() == ResponsibleParty.Partner)
+						(action.getType() == InvestorSubscriptionAction.TypeEnum.DOCUMENT_ACKNOWLEDGE ||
+								action.getType() == InvestorSubscriptionAction.TypeEnum.TEXT_ACKNOWLEDGE) &&
+								action.getResponsibleParty() == InvestorSubscriptionAction.ResponsiblePartyEnum.PARTNER)
 				.toList();
 		documentAcknowledgeSubscriptionActions.forEach(action -> {
 			// Complete the document
-			completeSubscriptionAction(action.getId().toString());
+			completeSubscriptionAction(action.getId());
 		});
 
 		return investorSubscription;
@@ -105,64 +113,101 @@ public class InvestorSubscriptionRecipes {
 
 	private static List<PreIPOCompanySPV> getAllPreIPOCompanySPVs(UUID investorId) {
 		try {
-			logger.info("GetAllPreIPOCompanySPVs *****");
-			return ApiClient.getAllPaged("/primary/v1/pre-ipo-company-spv/investor/" + investorId,
-					25, PreIPOCompanySPV.class);
-		} catch (Exception e) {
-			throw new RuntimeException(e);
+			log.info("Fetching all PreIPO company SPVs...");
+
+			// Initialize parameters for pagination
+			int pageSize = 100;
+			int currentPage = 1;
+			int totalPages = Integer.MAX_VALUE; // Placeholder until the total pages are known
+			List<PreIPOCompanySPV> allPreIPOCompanySPVs = new ArrayList<>();
+
+			// Loop through pages
+			while (currentPage <= totalPages) {
+				log.info("Fetching page {} with pageSize {}", currentPage, pageSize);
+				PreIPOCompanySPVApiResponse response = preIpoCompanySpvApi.primaryV1PreIpoCompanySpvInvestorInvestorIdGet(
+						investorId,
+						null,
+						null,
+						null,
+						null,
+						currentPage, // current page
+						pageSize, // page size
+						"Descending", // sortOrder
+						"UpdatedAt" // sortBy
+				);
+
+				// Extract items and append to the result list
+				if (response.getItems() != null) {
+					allPreIPOCompanySPVs.addAll(response.getItems());
+				}
+
+				// Get pagination info
+				Pagination pagination = response.getPagination();
+				if (pagination != null) {
+					totalPages = pagination.getTotalPages();
+					log.info("Total pages: {}", totalPages);
+				} else {
+					log.warn("Pagination information is missing, stopping iteration.");
+					break;
+				}
+
+				currentPage++;
+			}
+
+			log.info("Successfully fetched {} PreIPO company SPVs.", allPreIPOCompanySPVs.size());
+			return allPreIPOCompanySPVs;
+
+		} catch (ApiException e) {
+			log.error("Error occurred while fetching PreIPO company SPVs: {}", e.getMessage(), e);
+			throw new RuntimeException("Failed to fetch PreIPO company SPVs", e);
 		}
 	}
 
 	private static InvestorSubscription createInvestorSubscription(CreateInvestorSubscription createInvestorSubscription) {
 		try {
-			logger.info("CreateInvestorSubscription *****");
-			return ApiClient.sendRequest("/primary/v1/investor-subscription", "POST",
-					createInvestorSubscription, InvestorSubscription.class);
+			log.info("Create investor subscription: {}", createInvestorSubscription);
+			return investorSubscriptionApi.primaryV1InvestorSubscriptionPost(createInvestorSubscription);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	private static List<InvestorSubscriptionAction> getAllInvestorSubscriptionActions(InvestorSubscription investorSubscription) {
+	private static List<InvestorSubscriptionAction> getAllInvestorSubscriptionActions(UUID investorSubscriptionId) {
 		try {
-			logger.info("GetAllInvestorSubscriptionActions *****");
-			return ApiClient.sendRequest("/primary/v1/investor-subscription-action/investor-subscription/" +
-							investorSubscription.getId(), "GET", null,
-					new TypeReference<>() {
-					});
+			log.info("GetAllInvestorSubscriptionActions: {}", investorSubscriptionId);
+			return investorSubscriptionActionApi.primaryV1InvestorSubscriptionActionInvestorSubscriptionInvestorSubscriptionIdGet(investorSubscriptionId);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	private static Document getDocument(String documentId) {
+	private static Document getDocument(UUID documentId) {
 		try {
-			logger.info("GetDocumentById *****");
-			return ApiClient.sendRequest("/primary/v1/document/" + documentId, "GET", null,
-					Document.class);
+			log.info("Get document: {}", documentId);
+			return documentApi.primaryV1DocumentIdGet(documentId);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 	}
 
 	private static void signDocument(
-			String documentId,
+			UUID documentId,
 			SignDocument signDocument
 	) {
 		try {
-			logger.info("SignDocument *****");
-			ApiClient.sendRequest("/primary/v1/document/" + documentId + "/sign", "POST", signDocument);
+			log.info("Sign document: {}, signDocument: {}", documentId, signDocument);
+			documentApi.primaryV1DocumentIdSignPost(documentId, signDocument);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 	}
 
 	private static void completeSubscriptionAction(
-			String subscriptionActionId
+			UUID subscriptionActionId
 	) {
 		try {
-			logger.info("CompleteDocument *****");
-			ApiClient.sendRequest("/primary/v1/investor-subscription-action/" + subscriptionActionId + "/complete", "PUT", null);
+			log.info("Complete document: {}", subscriptionActionId);
+			investorSubscriptionActionApi1.primaryV1InvestorSubscriptionActionIdCompletePut(subscriptionActionId);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
