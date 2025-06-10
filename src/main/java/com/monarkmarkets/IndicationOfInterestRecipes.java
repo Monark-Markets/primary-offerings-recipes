@@ -1,19 +1,29 @@
 package com.monarkmarkets;
 
-import com.monarkmarkets.dtos.indicationofinterest.CreateIndicationOfInterest;
-import com.monarkmarkets.dtos.indicationofinterest.IndicationOfInterest;
-import com.monarkmarkets.dtos.investor.Investor;
-import com.monarkmarkets.dtos.preipocompany.PreIPOCompany;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.monarkmarkets.api.primary.webapi.api.IndicationOfInterestApi;
+import com.monarkmarkets.api.primary.webapi.api.InvestorApi;
+import com.monarkmarkets.api.primary.webapi.api.PreIpoCompanyApi;
+import com.monarkmarkets.api.primary.webapi.invoker.ApiException;
+import com.monarkmarkets.api.primary.webapi.model.CreateIndicationOfInterest;
+import com.monarkmarkets.api.primary.webapi.model.IndicationOfInterest;
+import com.monarkmarkets.api.primary.webapi.model.Investor;
+import com.monarkmarkets.api.primary.webapi.model.Pagination;
+import com.monarkmarkets.api.primary.webapi.model.PreIPOCompany;
+import com.monarkmarkets.api.primary.webapi.model.PreIPOCompanyApiResponse;
+import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+@Slf4j
 public class IndicationOfInterestRecipes {
 
 	private static final Random random = new Random();
-	private static final Logger logger = LoggerFactory.getLogger(IndicationOfInterestRecipes.class);
+
+	private static final InvestorApi investorApi = ApiFactory.getInvestorApi();
+	private static final PreIpoCompanyApi preIpoCompanyApi = ApiFactory.getPreIpoCompanyApi();
+	private static final IndicationOfInterestApi indicationOfInterestApi = ApiFactory.getIndicationOfInterestApi();
 
 	/**
 	 * Submit Indication of Interest
@@ -31,7 +41,7 @@ public class IndicationOfInterestRecipes {
 		// Step 3: Select one PreIPOCompany from the list,
 		// here we pick one at random for illustration purposes
 		PreIPOCompany preIPOCompany = allPreIPOCompanies.get(random.nextInt(allPreIPOCompanies.size()));
-		logger.info("PreIPOCompany: {}", preIPOCompany);
+		log.info("PreIPOCompany: {}", preIPOCompany);
 
 		// Step 4: Create IoI
 		CreateIndicationOfInterest createIndicationOfInterest = CreateIndicationOfInterest.builder()
@@ -41,38 +51,74 @@ public class IndicationOfInterestRecipes {
 				.currency("USD")
 				.build();
 		IndicationOfInterest indicationOfInterest = createIndicationOfInterest(createIndicationOfInterest);
-		logger.info("IndicationOfInterest: {}", indicationOfInterest);
+		log.info("IndicationOfInterest: {}", indicationOfInterest);
 
 		return indicationOfInterest;
 	}
 
 	private static Investor getInvestorByReferenceId(String investorReferenceId) {
 		try {
-			logger.info("GetInvestorByReferenceId *****");
-			return ApiClient.sendRequest("/primary/v1/investor/by-reference/" + investorReferenceId,
-					"GET", null, Investor.class);
-		} catch (Exception e) {
+			log.info("Getting investor by referenceId: {}", investorReferenceId);
+			return investorApi.primaryV1InvestorByReferenceInvestorReferenceIdGet(investorReferenceId);
+		} catch (ApiException e) {
 			throw new RuntimeException(e);
 		}
 	}
 
 	private static List<PreIPOCompany> getAllPreIPOCompanies() {
 		try {
-			logger.info("GetAllPreIPOCompanies *****");
-			String endpoint = "/primary/v1/pre-ipo-company";
-			return ApiClient.getAllPaged(endpoint, 25, PreIPOCompany.class);
-		} catch (Exception e) {
-			throw new RuntimeException(e);
+			log.info("Fetching all PreIPO companies...");
+
+			// Initialize parameters for pagination
+			int pageSize = 100;
+			int currentPage = 1;
+			int totalPages = Integer.MAX_VALUE; // Placeholder until the total pages are known
+			List<PreIPOCompany> allPreIPOCompanies = new ArrayList<>();
+
+			// Loop through pages
+			while (currentPage <= totalPages) {
+				log.info("Fetching page {} with pageSize {}", currentPage, pageSize);
+				PreIPOCompanyApiResponse response = preIpoCompanyApi.primaryV1PreIpoCompanyGet(
+						null, // searchTerm (optional)
+						null, // searchCategories (optional)
+						"UpdatedAt", // sortBy
+						"Descending", // sortOrder
+						currentPage, // current page
+						pageSize // page size
+				);
+
+				// Extract items and append to the result list
+				if (response.getItems() != null) {
+					allPreIPOCompanies.addAll(response.getItems());
+				}
+
+				// Get pagination info
+				Pagination pagination = response.getPagination();
+				if (pagination != null) {
+					totalPages = pagination.getTotalPages();
+					log.info("Total pages: {}", totalPages);
+				} else {
+					log.warn("Pagination information is missing, stopping iteration.");
+					break;
+				}
+
+				currentPage++;
+			}
+
+			log.info("Successfully fetched {} PreIPO companies.", allPreIPOCompanies.size());
+			return allPreIPOCompanies;
+
+		} catch (ApiException e) {
+			log.error("Error occurred while fetching PreIPO companies: {}", e.getMessage(), e);
+			throw new RuntimeException("Failed to fetch PreIPO companies", e);
 		}
+
 	}
 
-	private static IndicationOfInterest createIndicationOfInterest(
-			CreateIndicationOfInterest createIndicationOfInterest
-	) {
+	private static IndicationOfInterest createIndicationOfInterest(CreateIndicationOfInterest createIndicationOfInterest) {
 		try {
-			logger.info("CreateIndicationOfInterest *****");
-			return ApiClient.sendRequest("/primary/v1/indication-of-interest", "POST",
-					createIndicationOfInterest, IndicationOfInterest.class);
+			log.info("Create indication of interest: {}", createIndicationOfInterest);
+			return indicationOfInterestApi.primaryV1IndicationOfInterestPost(createIndicationOfInterest);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}

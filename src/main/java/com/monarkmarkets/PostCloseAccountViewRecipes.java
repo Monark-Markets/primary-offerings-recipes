@@ -1,17 +1,23 @@
 package com.monarkmarkets;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.monarkmarkets.dtos.document.Document;
-import com.monarkmarkets.dtos.investorsubscription.InvestorSubscription;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.monarkmarkets.api.primary.webapi.api.DocumentApi;
+import com.monarkmarkets.api.primary.webapi.api.InvestorSubscriptionApi;
+import com.monarkmarkets.api.primary.webapi.invoker.ApiException;
+import com.monarkmarkets.api.primary.webapi.model.Document;
+import com.monarkmarkets.api.primary.webapi.model.DocumentApiResponse;
+import com.monarkmarkets.api.primary.webapi.model.InvestorSubscription;
+import com.monarkmarkets.api.primary.webapi.model.Pagination;
+import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 public class PostCloseAccountViewRecipes {
 
-	private static final Logger logger = LoggerFactory.getLogger(PostCloseAccountViewRecipes.class);
+	private static final InvestorSubscriptionApi investorSubscriptionApi = ApiFactory.getInvestorSubscriptionApi();
+	private static final DocumentApi documentApi = ApiFactory.getDocumentApi();
 
 	/**
 	 * Post-Close Account View
@@ -22,23 +28,21 @@ public class PostCloseAccountViewRecipes {
 		// Step 1: Get InvestorSubscriptions by InvestorId
 		// The investorId must be active, had subscribed to investments and had documents uploaded
 		List<InvestorSubscription> investorSubscriptions = getAllInvestorSubscriptions(investorId);
-		logger.info("Investor subscriptions: {}", investorSubscriptions);
+		log.info("Investor subscriptions: {}", investorSubscriptions);
 
 		investorSubscriptions.forEach(investorSubscription -> {
-			logger.info("Getting documents for InvestorSubscription: {}", investorSubscription);
+			log.info("Getting documents for InvestorSubscription: {}", investorSubscription);
 
 			// Step 2: Get all Documents for the investorSubscription
-			List<Document> documents = getAllDocuments(investorId, investorSubscription);
-			logger.info("InvestorSubscription Documents: {}", documents);
+			List<Document> documents = getAllDocuments(investorId, investorSubscription.getId());
+			log.info("InvestorSubscription Documents: {}", documents);
 		});
 	}
 
 	private static List<InvestorSubscription> getAllInvestorSubscriptions(UUID investorId) {
 		try {
-			logger.info("GetAllInvestorSubscriptions *****");
-			return ApiClient.sendRequest("/primary/v1/investor-subscription/investor/" + investorId,
-					"GET", null, new TypeReference<>() {
-					});
+			log.info("Get all investor subscriptions: {}", investorId);
+			return investorSubscriptionApi.primaryV1InvestorSubscriptionInvestorInvestorIdGet(investorId);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -46,14 +50,58 @@ public class PostCloseAccountViewRecipes {
 
 	private static List<Document> getAllDocuments(
 			UUID investorId,
-			InvestorSubscription investorSubscription
+			UUID investorSubscriptionId
 	) {
 		try {
-			logger.info("GetAllDocuments *****");
-			String endpoint = "/primary/v1/document?investorId=" + investorId + "&investorSubscriptionId=" + investorSubscription.getId();
-			return ApiClient.getAllPaged(endpoint, 25, Document.class);
-		} catch (Exception e) {
-			throw new RuntimeException(e);
+			log.info("Get all documents for investorId {} and investorSubscriptionId: {}", investorId, investorSubscriptionId);
+
+			// Initialize parameters for pagination
+			int pageSize = 100;
+			int currentPage = 1;
+			int totalPages = Integer.MAX_VALUE; // Placeholder until the total pages are known
+			List<Document> allDocuments = new ArrayList<>();
+
+			// Loop through pages
+			while (currentPage <= totalPages) {
+				log.info("Fetching page {} with pageSize {}", currentPage, pageSize);
+				DocumentApiResponse response = documentApi.primaryV1DocumentGet(
+						investorId,
+						null,
+						null,
+						null,
+						investorSubscriptionId,
+						null,
+						null,
+						null,
+						currentPage,
+						pageSize,
+						"Descending" // sortOrder
+				);
+
+				// Extract items and append to the result list
+				if (response.getItems() != null) {
+					allDocuments.addAll(response.getItems());
+				}
+
+				// Get pagination info
+				Pagination pagination = response.getPagination();
+				if (pagination != null) {
+					totalPages = pagination.getTotalPages();
+					log.info("Total pages: {}", totalPages);
+				} else {
+					log.warn("Pagination information is missing, stopping iteration.");
+					break;
+				}
+
+				currentPage++;
+			}
+
+			log.info("Successfully fetched {} documents.", allDocuments.size());
+			return allDocuments;
+
+		} catch (ApiException e) {
+			log.error("Error occurred while fetching documents: {}", e.getMessage(), e);
+			throw new RuntimeException("Failed to fetch documents", e);
 		}
 	}
 }
