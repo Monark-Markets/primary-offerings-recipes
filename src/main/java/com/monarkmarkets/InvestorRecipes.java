@@ -56,20 +56,31 @@ public class InvestorRecipes {
 	 * @return the new Investor
 	 */
 	public static Investor investorOnboarding() {
-		// Step 1: Create an investor - Pending status
+
+		// Step 1: Get all financial institutions
+		List<FinancialInstitution> financialInstitutions = getAllFinancialInstitutions();
+
+		// Select a financial institution at random
+		FinancialInstitution randomFinancialInstitution = financialInstitutions.get(
+				current().nextInt(financialInstitutions.size()));
+		log.info("Selected Financial Institution: {}", randomFinancialInstitution);
+		UUID financialInstitutionId = randomFinancialInstitution.getId();
+
+		// Step 2: Create an investor - Pending status
 		String investorReferenceId = generateInvestorReferenceId();
 		Investor investor = createInvestor(
 				CreateInvestor.builder()
 						.investorReferenceId(investorReferenceId)
+						.financialInstitutionId(financialInstitutionId)
 						.type(CreateInvestor.TypeEnum.INDIVIDUAL_INVESTOR)
 						.build());
 		log.info("Investor created: {}", investor);
 
-		// Step 2: Get all questionnaires
+		// Step 3: Get all questionnaires
 		List<Questionnaire> questionnaires = getAllQuestionnaires();
 		log.info("Questionnaires: {}", questionnaires);
 
-		// Step 3: Answer all questions in questionnaires,
+		// Step 4: Answer all questions in questionnaires,
 		// here we pick one at random for illustration purposes
 		if (questionnaires != null && !questionnaires.isEmpty()) {
 			for (Questionnaire questionnaire : questionnaires) {
@@ -117,24 +128,15 @@ public class InvestorRecipes {
 			}
 		}
 
-		// Step 4: Update accreditation status
+		// Step 5: Update accreditation status
 		// here we pick one at random for illustration purposes
 		updateInvestorAccreditation(UpdateInvestorAccreditation.builder()
 				.investorId(investor.getId())
 				.accreditationStatus(UpdateInvestorAccreditation.AccreditationStatusEnum.KNOWLEDGEABLE_EMPLOYEE)
 				.build());
 
-		// Get all financial institutions
-		List<FinancialInstitution> financialInstitutions = getAllFinancialInstitutions();
-
-		// Select a financial institution at random
-		FinancialInstitution randomFinancialInstitution = financialInstitutions.get(
-				current().nextInt(financialInstitutions.size()));
-		log.info("Selected Financial Institution: {}", randomFinancialInstitution);
-
-		// Step 3: Create a CreateFinancialAdvisor object with required fields
-		UUID financialInstitutionId = randomFinancialInstitution.getId();
-		CreateFinancialAdvisor createFinancialAdvisor = CreateFinancialAdvisor.builder()
+		// Step 6: Create a CreateFinancialAdvisor object with required fields
+		FinancialAdvisor financialAdvisor = createFinancialAdvisor(CreateFinancialAdvisor.builder()
 				.financialInstitutionId(financialInstitutionId)
 				.crdNumber(randomNumeric.generate(8)) // Replace with actual CRD number if available
 				.iardNumber(randomNumeric.generate(8)) // Replace with actual IARD number if available
@@ -153,13 +155,10 @@ public class InvestorRecipes {
 				.fax("123-456-7890")
 				.prefix("Mrs")
 				.broker("ExampleBroker")
-				.build();
-
-		// Step 4: Call FinancialAdvisorApi to create a financial advisor
-		FinancialAdvisor financialAdvisor = createFinancialAdvisor(createFinancialAdvisor);
+				.build());
 		log.info("Financial Advisor created successfully: {}", financialAdvisor);
 
-		// Step 5: Update investor details
+		// Step 7: Update investor details
 		Investor updatedInvestor = updateInvestor(UpdateInvestor.builder()
 				.id(investor.getId())
 				.investorReferenceId(investor.getInvestorReferenceId())
@@ -193,7 +192,7 @@ public class InvestorRecipes {
 				.build());
 		log.info("Investor updated: {}", updatedInvestor);
 
-		// Step 6: Get investor by id
+		// Step 8: Get investor by id
 		Investor investorById = getInvestorById(investor.getId());
 		log.info("Investor by id: {}", investorById);
 
