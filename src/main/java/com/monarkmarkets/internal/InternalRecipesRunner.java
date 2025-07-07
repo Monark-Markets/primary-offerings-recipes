@@ -19,7 +19,7 @@ public class InternalRecipesRunner {
 
 	public static void main(String[] args) {
 		try {
-			Recipes.main(args);
+			Recipes.runAll(args);
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 			alertManager.sendAlert(new SendAlertOptions() {{

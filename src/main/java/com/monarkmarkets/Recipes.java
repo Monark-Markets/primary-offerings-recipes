@@ -17,29 +17,32 @@ public class Recipes {
 
 	public static void main(String[] args) {
 		try {
-			// Execute Investor Onboarding recipe
-			Investor investor = investorOnboarding();
-			log.info("Investor: {}", investor);
-
-			// Execute Submission of Indication of Interest
-			IndicationOfInterest indicationOfInterest = submitIndicationOfInterest(investor.getInvestorReferenceId());
-			log.info("IndicationOfInterest: {}", indicationOfInterest);
-
-			// Execute Investor Subscription
-			InvestorSubscription investorSubscription = submitInvestorSubscription(investor.getId());
-			log.info("InvestorSubscription: {}", investorSubscription);
-
-			// Execute Post-Close Account View
-			postCloseAccountView(investor.getId());
-			log.info("Post-Close Account View completed for Investor ID: {}", investor.getId());
-
-			// Execute Registered Fund Subscription
-			RegisteredFundSubscription registeredFundSubscription = submitRegisteredFundSubscription(investor.getId());
-			log.info("RegisteredFundSubscription: {}", registeredFundSubscription);
-
+			runAll(args);
 		} catch (Exception e) {
 			log.error(e.getMessage(), e);
 			System.exit(-1);
 		}
+	}
+
+	public static void runAll(String[] args) {
+		// Execute Investor Onboarding recipe
+		Investor investor = investorOnboarding();
+		log.info("Investor: {}", investor);
+
+		// Execute Submission of Indication of Interest
+		IndicationOfInterest indicationOfInterest = submitIndicationOfInterest(investor.getInvestorReferenceId());
+		log.info("IndicationOfInterest: {}", indicationOfInterest);
+
+		// Execute Investor Subscription
+		InvestorSubscription investorSubscription = submitInvestorSubscription(investor.getId());
+		log.info("InvestorSubscription: {}", investorSubscription);
+
+		// Execute Post-Close Account View
+		postCloseAccountView(investor.getId());
+		log.info("Post-Close Account View completed for Investor ID: {}", investor.getId());
+
+		// Execute Registered Fund Subscription
+		RegisteredFundSubscription registeredFundSubscription = submitRegisteredFundSubscription(investor.getId());
+		log.info("RegisteredFundSubscription: {}", registeredFundSubscription);
 	}
 }
