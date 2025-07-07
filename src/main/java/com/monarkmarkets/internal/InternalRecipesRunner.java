@@ -1,10 +1,14 @@
 package com.monarkmarkets.internal;
 
+import com.monarkmarkets.ApiFactory;
 import com.monarkmarkets.Recipes;
+import com.monarkmarkets.api.primary.webapi.api.VersionApi;
 import com.monarkmarkets.api.primary.webapi.invoker.Configuration;
+import com.monarkmarkets.api.primary.webapi.model.ApiVersion;
 import com.monarkmarkets.internal.alert.AlertManager;
 import com.monarkmarkets.internal.alert.AlertManagerConfig;
 import com.monarkmarkets.internal.alert.SendAlertOptions;
+import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,14 +21,18 @@ public class InternalRecipesRunner {
 					ConfigInternal.getInstance().getAlertManagerUser(),
 					ConfigInternal.getInstance().getAlertManagerPassword()
 			));
+	private static final VersionApi versionApi = ApiFactory.getVersionApi();
 
+	@SneakyThrows
 	public static void main(String[] args) {
 		try {
 			Recipes.runAll(args);
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
+
+			ApiVersion apiVersion = versionApi.primaryV1VersionGet();
 			alertManager.sendAlert(new SendAlertOptions() {{
-				setTitle("Recipes execution failed. API version: " + Configuration.VERSION);
+				setTitle("Recipes execution failed. Public API version: " + apiVersion.getVersion() + ". Client API version: " + Configuration.VERSION);
 				setMessage("Failed to execute internal recipes due to an error: " + e.getMessage());
 				setDetails(e.getMessage());
 				setSourceComponent("InternalRecipesRunner");
