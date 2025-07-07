@@ -1,6 +1,7 @@
 package com.monarkmarkets.internal;
 
 import com.monarkmarkets.Recipes;
+import com.monarkmarkets.api.primary.webapi.invoker.Configuration;
 import com.monarkmarkets.internal.alert.AlertManager;
 import com.monarkmarkets.internal.alert.AlertManagerConfig;
 import com.monarkmarkets.internal.alert.SendAlertOptions;
@@ -23,11 +24,11 @@ public class InternalRecipesRunner {
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 			alertManager.sendAlert(new SendAlertOptions() {{
-				setTitle("Recipes execution failed");
+				setTitle("Recipes execution failed. API version: " + Configuration.VERSION);
 				setMessage("Failed to execute internal recipes due to an error: " + e.getMessage());
 				setDetails(e.getMessage());
 				setSourceComponent("InternalRecipesRunner");
-				setEnvironment(ConfigInternal.getInstance().getEnvironment());
+				setEnvironment("STAGING");
 				setSeverity("error");
 			}});
 			System.exit(-1);
