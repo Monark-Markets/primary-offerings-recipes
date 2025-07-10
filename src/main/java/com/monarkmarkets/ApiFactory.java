@@ -13,6 +13,7 @@ import com.monarkmarkets.api.primary.webapi.api.QuestionnaireAnswerApi;
 import com.monarkmarkets.api.primary.webapi.api.QuestionnaireApi;
 import com.monarkmarkets.api.primary.webapi.api.RegisteredFundApi;
 import com.monarkmarkets.api.primary.webapi.api.RegisteredFundSubscriptionApi;
+import com.monarkmarkets.api.primary.webapi.api.VersionApi;
 import com.monarkmarkets.api.primary.webapi.invoker.ApiClient;
 import com.monarkmarkets.api.primary.webapi.invoker.Configuration;
 import com.monarkmarkets.api.primary.webapi.invoker.auth.ApiKeyAuth;
@@ -36,6 +37,7 @@ public class ApiFactory {
 	private static RegisteredFundApi registeredFundApi;
 	private static RegisteredFundSubscriptionApi registeredFundSubscriptionApi;
 	private static FinancialInstitutionApi financialInstitutionApi;
+	private static VersionApi versionApi;
 
 	public static ApiClient getConfiguredApiClient() {
 		Config config = Config.getInstance();
@@ -150,5 +152,13 @@ public class ApiFactory {
 			financialInstitutionApi = new FinancialInstitutionApi(apiClient);
 		}
 		return financialInstitutionApi;
+	}
+
+	@Synchronized
+	public static VersionApi getVersionApi() {
+		if (versionApi == null) {
+			versionApi = new VersionApi(apiClient);
+		}
+		return versionApi;
 	}
 }
