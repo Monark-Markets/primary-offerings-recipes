@@ -83,6 +83,10 @@ public class IndicationOfInterestRecipes {
 						null, // searchCategories (optional)
 						"UpdatedAt", // sortBy
 						"Descending", // sortOrder
+						null,
+						null,
+						null,
+						null,
 						currentPage, // current page
 						pageSize // page size
 				);

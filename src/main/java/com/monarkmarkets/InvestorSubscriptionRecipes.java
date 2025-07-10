@@ -46,14 +46,13 @@ public class InvestorSubscriptionRecipes {
 		log.info("PreIPOCompanySPV: {}", preIPOCompanySPV);
 
 		// Step 1.1: Calculate the Subscription Amount based on the subscription rules
-		SubscriptionAmount amount = SubscriptionCalculator.calculateSubscription(preIPOCompanySPV);
+		SubscriptionAmount amount = SubscriptionCalculator.calculateSubscriptionAmount(preIPOCompanySPV);
 
 		// Step 2: Create a Subscription for the investor to the PreIPOCompanySPV
 		CreateInvestorSubscription createInvestorSubscription = CreateInvestorSubscription.builder()
 				.preIPOCompanySPVId(preIPOCompanySPV.getId())
 				.investorId(investorId)
 				.amountReservedDollars(amount.amountReservedDollars)
-				.amountReservedShares(amount.amountReservedShares)
 				.build();
 		InvestorSubscription investorSubscription = createInvestorSubscription(createInvestorSubscription);
 		log.info("InvestorSubscription: {}", investorSubscription);
@@ -126,6 +125,7 @@ public class InvestorSubscriptionRecipes {
 				log.info("Fetching page {} with pageSize {}", currentPage, pageSize);
 				PreIPOCompanySPVApiResponse response = preIpoCompanySpvApi.primaryV1PreIpoCompanySpvInvestorInvestorIdGet(
 						investorId,
+						null,
 						null,
 						null,
 						null,
