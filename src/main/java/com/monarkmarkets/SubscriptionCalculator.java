@@ -1,6 +1,6 @@
 package com.monarkmarkets;
 
-import com.monarkmarkets.api.primary.webapi.model.PreIPOCompanySPV;
+import com.monarkmarkets.primary.client.model.PreIPOCompanySPV;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 

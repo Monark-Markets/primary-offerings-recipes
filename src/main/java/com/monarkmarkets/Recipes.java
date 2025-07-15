@@ -1,9 +1,9 @@
 package com.monarkmarkets;
 
-import com.monarkmarkets.api.primary.webapi.model.IndicationOfInterest;
-import com.monarkmarkets.api.primary.webapi.model.Investor;
-import com.monarkmarkets.api.primary.webapi.model.InvestorSubscription;
-import com.monarkmarkets.api.primary.webapi.model.RegisteredFundSubscription;
+import com.monarkmarkets.primary.client.model.IndicationOfInterest;
+import com.monarkmarkets.primary.client.model.Investor;
+import com.monarkmarkets.primary.client.model.InvestorSubscription;
+import com.monarkmarkets.primary.client.model.RegisteredFundSubscription;
 import lombok.extern.slf4j.Slf4j;
 
 import static com.monarkmarkets.IndicationOfInterestRecipes.submitIndicationOfInterest;

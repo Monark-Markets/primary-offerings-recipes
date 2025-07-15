@@ -1,26 +1,26 @@
 package com.monarkmarkets;
 
 import com.monarkmarkets.SubscriptionCalculator.SubscriptionAmount;
-import com.monarkmarkets.api.primary.webapi.api.DocumentApi;
-import com.monarkmarkets.api.primary.webapi.api.InvestorSubscriptionActionApi;
-import com.monarkmarkets.api.primary.webapi.api.InvestorSubscriptionApi;
-import com.monarkmarkets.api.primary.webapi.api.PreIpoCompanySpvApi;
-import com.monarkmarkets.api.primary.webapi.invoker.ApiException;
-import com.monarkmarkets.api.primary.webapi.model.CreateInvestorSubscription;
-import com.monarkmarkets.api.primary.webapi.model.Document;
-import com.monarkmarkets.api.primary.webapi.model.InvestorSubscription;
-import com.monarkmarkets.api.primary.webapi.model.InvestorSubscriptionAction;
-import com.monarkmarkets.api.primary.webapi.model.Pagination;
-import com.monarkmarkets.api.primary.webapi.model.PreIPOCompanySPV;
-import com.monarkmarkets.api.primary.webapi.model.PreIPOCompanySPVApiResponse;
-import com.monarkmarkets.api.primary.webapi.model.SignDocument;
+import com.monarkmarkets.primary.client.api.DocumentApi;
+import com.monarkmarkets.primary.client.api.InvestorSubscriptionActionApi;
+import com.monarkmarkets.primary.client.api.InvestorSubscriptionApi;
+import com.monarkmarkets.primary.client.api.PreIpoCompanySpvApi;
+import com.monarkmarkets.primary.client.invoker.ApiException;
+import com.monarkmarkets.primary.client.model.CreateInvestorSubscription;
+import com.monarkmarkets.primary.client.model.Document;
+import com.monarkmarkets.primary.client.model.InvestorSubscription;
+import com.monarkmarkets.primary.client.model.InvestorSubscriptionAction;
+import com.monarkmarkets.primary.client.model.Pagination;
+import com.monarkmarkets.primary.client.model.PreIPOCompanySPV;
+import com.monarkmarkets.primary.client.model.PreIPOCompanySPVApiResponse;
+import com.monarkmarkets.primary.client.model.SignDocument;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import static com.monarkmarkets.api.primary.webapi.model.PreIPOCompanySPV.MonarkStageEnum.PRIMARY_FUNDRAISE;
+import static com.monarkmarkets.primary.client.model.PreIPOCompanySPV.MonarkStageEnum.PRIMARY_FUNDRAISE;
 
 @Slf4j
 public class InvestorSubscriptionRecipes {
