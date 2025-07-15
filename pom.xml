@@ -28,9 +28,21 @@
 		<dotenv-java.version>3.2.0</dotenv-java.version>
 		<slf4j-api.version>2.0.9</slf4j-api.version>
 		<logback-classic.version>1.5.18</logback-classic.version>
+		<primary-api-client.version>1.1.109</primary-api-client.version>
+
+		<!-- Plugins -->
+		<maven-compiler-plugin.version>3.14.0</maven-compiler-plugin.version>
+		<maven-enforcer-plugin.version>3.5.0</maven-enforcer-plugin.version>
+		<maven-shade-plugin.version>3.6.0</maven-shade-plugin.version>
 	</properties>
 
 	<dependencies>
+		<!-- Monark Markets Primary offerings API client -->
+		<dependency>
+			<groupId>com.monark-markets</groupId>
+			<artifactId>primary-api-client</artifactId>
+			<version>${primary-api-client.version}</version>
+		</dependency>
 		<!-- Lombok for code generation -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
@@ -126,7 +138,7 @@
 			<plugins>
 				<plugin>
 					<artifactId>maven-compiler-plugin</artifactId>
-					<version>3.14.0</version>
+					<version>${maven-compiler-plugin.version}</version>
 				</plugin>
 			</plugins>
 		</pluginManagement>
@@ -135,7 +147,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-enforcer-plugin</artifactId>
-				<version>3.5.0</version>
+				<version>${maven-enforcer-plugin.version}</version>
 				<executions>
 					<execution>
 						<id>enforce-maven</id>
@@ -160,7 +172,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-shade-plugin</artifactId>
-				<version>3.6.0</version>
+				<version>${maven-shade-plugin.version}</version>
 				<executions>
 					<execution>
 						<phase>package</phase>

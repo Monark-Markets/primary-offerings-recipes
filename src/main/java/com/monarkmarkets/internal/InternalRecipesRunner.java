@@ -2,9 +2,9 @@ package com.monarkmarkets.internal;
 
 import com.monarkmarkets.ApiFactory;
 import com.monarkmarkets.Recipes;
-import com.monarkmarkets.api.primary.webapi.api.VersionApi;
-import com.monarkmarkets.api.primary.webapi.invoker.Configuration;
-import com.monarkmarkets.api.primary.webapi.model.ApiVersion;
+import com.monarkmarkets.primary.client.api.VersionApi;
+import com.monarkmarkets.primary.client.invoker.Configuration;
+import com.monarkmarkets.primary.client.model.ApiVersion;
 import com.monarkmarkets.internal.alert.AlertManager;
 import com.monarkmarkets.internal.alert.AlertManagerConfig;
 import com.monarkmarkets.internal.alert.SendAlertOptions;

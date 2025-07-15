@@ -1,22 +1,22 @@
 package com.monarkmarkets;
 
-import com.monarkmarkets.api.primary.webapi.api.DocumentApi;
-import com.monarkmarkets.api.primary.webapi.api.FinancialAdvisorApi;
-import com.monarkmarkets.api.primary.webapi.api.FinancialInstitutionApi;
-import com.monarkmarkets.api.primary.webapi.api.IndicationOfInterestApi;
-import com.monarkmarkets.api.primary.webapi.api.InvestorApi;
-import com.monarkmarkets.api.primary.webapi.api.InvestorSubscriptionActionApi;
-import com.monarkmarkets.api.primary.webapi.api.InvestorSubscriptionApi;
-import com.monarkmarkets.api.primary.webapi.api.PreIpoCompanyApi;
-import com.monarkmarkets.api.primary.webapi.api.PreIpoCompanySpvApi;
-import com.monarkmarkets.api.primary.webapi.api.QuestionnaireAnswerApi;
-import com.monarkmarkets.api.primary.webapi.api.QuestionnaireApi;
-import com.monarkmarkets.api.primary.webapi.api.RegisteredFundApi;
-import com.monarkmarkets.api.primary.webapi.api.RegisteredFundSubscriptionApi;
-import com.monarkmarkets.api.primary.webapi.api.VersionApi;
-import com.monarkmarkets.api.primary.webapi.invoker.ApiClient;
-import com.monarkmarkets.api.primary.webapi.invoker.Configuration;
-import com.monarkmarkets.api.primary.webapi.invoker.auth.ApiKeyAuth;
+import com.monarkmarkets.primary.client.api.DocumentApi;
+import com.monarkmarkets.primary.client.api.FinancialAdvisorApi;
+import com.monarkmarkets.primary.client.api.FinancialInstitutionApi;
+import com.monarkmarkets.primary.client.api.IndicationOfInterestApi;
+import com.monarkmarkets.primary.client.api.InvestorApi;
+import com.monarkmarkets.primary.client.api.InvestorSubscriptionActionApi;
+import com.monarkmarkets.primary.client.api.InvestorSubscriptionApi;
+import com.monarkmarkets.primary.client.api.PreIpoCompanyApi;
+import com.monarkmarkets.primary.client.api.PreIpoCompanySpvApi;
+import com.monarkmarkets.primary.client.api.QuestionnaireAnswerApi;
+import com.monarkmarkets.primary.client.api.QuestionnaireApi;
+import com.monarkmarkets.primary.client.api.RegisteredFundApi;
+import com.monarkmarkets.primary.client.api.RegisteredFundSubscriptionApi;
+import com.monarkmarkets.primary.client.api.VersionApi;
+import com.monarkmarkets.primary.client.invoker.ApiClient;
+import com.monarkmarkets.primary.client.invoker.Configuration;
+import com.monarkmarkets.primary.client.invoker.auth.ApiKeyAuth;
 import lombok.Synchronized;
 
 public class ApiFactory {

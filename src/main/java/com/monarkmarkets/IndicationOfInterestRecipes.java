@@ -1,15 +1,15 @@
 package com.monarkmarkets;
 
-import com.monarkmarkets.api.primary.webapi.api.IndicationOfInterestApi;
-import com.monarkmarkets.api.primary.webapi.api.InvestorApi;
-import com.monarkmarkets.api.primary.webapi.api.PreIpoCompanyApi;
-import com.monarkmarkets.api.primary.webapi.invoker.ApiException;
-import com.monarkmarkets.api.primary.webapi.model.CreateIndicationOfInterest;
-import com.monarkmarkets.api.primary.webapi.model.IndicationOfInterest;
-import com.monarkmarkets.api.primary.webapi.model.Investor;
-import com.monarkmarkets.api.primary.webapi.model.Pagination;
-import com.monarkmarkets.api.primary.webapi.model.PreIPOCompany;
-import com.monarkmarkets.api.primary.webapi.model.PreIPOCompanyApiResponse;
+import com.monarkmarkets.primary.client.api.IndicationOfInterestApi;
+import com.monarkmarkets.primary.client.api.InvestorApi;
+import com.monarkmarkets.primary.client.api.PreIpoCompanyApi;
+import com.monarkmarkets.primary.client.invoker.ApiException;
+import com.monarkmarkets.primary.client.model.CreateIndicationOfInterest;
+import com.monarkmarkets.primary.client.model.IndicationOfInterest;
+import com.monarkmarkets.primary.client.model.Investor;
+import com.monarkmarkets.primary.client.model.Pagination;
+import com.monarkmarkets.primary.client.model.PreIPOCompany;
+import com.monarkmarkets.primary.client.model.PreIPOCompanyApiResponse;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;

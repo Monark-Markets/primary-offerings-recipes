@@ -1,12 +1,12 @@
 package com.monarkmarkets;
 
-import com.monarkmarkets.api.primary.webapi.api.DocumentApi;
-import com.monarkmarkets.api.primary.webapi.api.InvestorSubscriptionApi;
-import com.monarkmarkets.api.primary.webapi.invoker.ApiException;
-import com.monarkmarkets.api.primary.webapi.model.Document;
-import com.monarkmarkets.api.primary.webapi.model.DocumentApiResponse;
-import com.monarkmarkets.api.primary.webapi.model.InvestorSubscription;
-import com.monarkmarkets.api.primary.webapi.model.Pagination;
+import com.monarkmarkets.primary.client.api.DocumentApi;
+import com.monarkmarkets.primary.client.api.InvestorSubscriptionApi;
+import com.monarkmarkets.primary.client.invoker.ApiException;
+import com.monarkmarkets.primary.client.model.Document;
+import com.monarkmarkets.primary.client.model.DocumentApiResponse;
+import com.monarkmarkets.primary.client.model.InvestorSubscription;
+import com.monarkmarkets.primary.client.model.Pagination;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;

@@ -1,14 +1,14 @@
 package com.monarkmarkets;
 
-import com.monarkmarkets.api.primary.webapi.api.RegisteredFundApi;
-import com.monarkmarkets.api.primary.webapi.api.RegisteredFundSubscriptionApi;
-import com.monarkmarkets.api.primary.webapi.invoker.ApiException;
-import com.monarkmarkets.api.primary.webapi.model.CreateRegisteredFundSubscription;
-import com.monarkmarkets.api.primary.webapi.model.Pagination;
-import com.monarkmarkets.api.primary.webapi.model.RegisteredFund;
-import com.monarkmarkets.api.primary.webapi.model.RegisteredFundApiResponse;
-import com.monarkmarkets.api.primary.webapi.model.RegisteredFundSubscription;
-import com.monarkmarkets.api.primary.webapi.model.SignatureRequest;
+import com.monarkmarkets.primary.client.api.RegisteredFundApi;
+import com.monarkmarkets.primary.client.api.RegisteredFundSubscriptionApi;
+import com.monarkmarkets.primary.client.invoker.ApiException;
+import com.monarkmarkets.primary.client.model.CreateRegisteredFundSubscription;
+import com.monarkmarkets.primary.client.model.Pagination;
+import com.monarkmarkets.primary.client.model.RegisteredFund;
+import com.monarkmarkets.primary.client.model.RegisteredFundApiResponse;
+import com.monarkmarkets.primary.client.model.RegisteredFundSubscription;
+import com.monarkmarkets.primary.client.model.SignatureRequest;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
