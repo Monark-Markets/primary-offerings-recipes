@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static com.monarkmarkets.primary.client.model.PreIPOCompanySPV.MonarkStageEnum.PRIMARY_FUNDRAISE;
+import static java.util.concurrent.ThreadLocalRandom.current;
 
 @Slf4j
 public class InvestorSubscriptionRecipes {
@@ -100,14 +101,18 @@ public class InvestorSubscriptionRecipes {
 	}
 
 	private static PreIPOCompanySPV choosePreIPOCompanySPV(List<PreIPOCompanySPV> preIPOCompanySPVS) {
-		return preIPOCompanySPVS.stream()
-				.filter(preIPOCompanySPV -> preIPOCompanySPV.getRemainingShareAllocation() > 0 &&
-						preIPOCompanySPV.getRemainingDollarAllocation() > 0 &&
-						preIPOCompanySPV.getNumberOfSeatsRemaining() > 0 &&
-						preIPOCompanySPV.getMonarkStage() == PRIMARY_FUNDRAISE)
-				.findFirst()
-				.orElseThrow(() -> new RuntimeException("No PreIPOCompanySPV found with remaining shares or dollar " +
-						"allocation"));
+		List<PreIPOCompanySPV> eligibleSPVs = preIPOCompanySPVS.stream()
+				.filter(spv -> spv.getRemainingShareAllocation() > 0 &&
+						spv.getRemainingDollarAllocation() > 0 &&
+						spv.getNumberOfSeatsRemaining() > 0 &&
+						spv.getMonarkStage() == PRIMARY_FUNDRAISE)
+				.toList();
+
+		if (eligibleSPVs.isEmpty()) {
+			throw new RuntimeException("No PreIPOCompanySPV found with remaining shares or dollar allocation");
+		}
+
+		return eligibleSPVs.get(current().nextInt(eligibleSPVs.size()));
 	}
 
 	private static List<PreIPOCompanySPV> getAllPreIPOCompanySPVs(UUID investorId) {
