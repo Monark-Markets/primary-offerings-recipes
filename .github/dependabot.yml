@@ -4,14 +4,10 @@ updates:
   - package-ecosystem: "maven"
     directory: "/"
     schedule:
-      interval: "weekly"
-    reviewers:
-      - "tholu"
+      interval: "monthly"
 
   # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
-    reviewers:
-      - "tholu"
+      interval: "monthly"
