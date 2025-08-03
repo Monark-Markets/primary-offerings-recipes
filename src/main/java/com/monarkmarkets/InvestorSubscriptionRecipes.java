@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static com.monarkmarkets.primary.client.model.PreIPOCompanySPV.MonarkStageEnum.PRIMARY_FUNDRAISE;
+import static java.util.concurrent.ThreadLocalRandom.current;
 
 @Slf4j
 public class InvestorSubscriptionRecipes {
@@ -62,7 +63,7 @@ public class InvestorSubscriptionRecipes {
 				getAllInvestorSubscriptionActions(investorSubscription.getId());
 		log.info("InvestorSubscriptionActions: {}", investorSubscriptionActions);
 
-		// Step 4: Sign Documents by Id
+		// Step 4: Complete Subscription Actions - Sign Documents
 		// All InvestorSubscriptionAction that have type=DocumentSign and responsibleParty=Partner
 		// will require document signing
 		List<InvestorSubscriptionAction> requireSigningSubscriptionActions = investorSubscriptionActions.stream()
@@ -82,17 +83,29 @@ public class InvestorSubscriptionRecipes {
 					.build());
 		});
 
-		// Step 5: Document Acknowledge by Id
-		// All InvestorSubscriptionAction that have type=DocumentAcknowledge or type=TextAcknowledge and
-		// responsibleParty=Partner will require document signing
+		// Step 5: Complete Subscription Actions - Document Acknowledge
+		// All InvestorSubscriptionAction that have type=DocumentAcknowledge and responsibleParty=Partner will
+		// require document acknowledging
 		List<InvestorSubscriptionAction> documentAcknowledgeSubscriptionActions = investorSubscriptionActions.stream()
 				.filter(action ->
-						(action.getType() == InvestorSubscriptionAction.TypeEnum.DOCUMENT_ACKNOWLEDGE ||
-								action.getType() == InvestorSubscriptionAction.TypeEnum.TEXT_ACKNOWLEDGE) &&
+						(action.getType() == InvestorSubscriptionAction.TypeEnum.DOCUMENT_ACKNOWLEDGE) &&
 								action.getResponsibleParty() == InvestorSubscriptionAction.ResponsiblePartyEnum.PARTNER)
 				.toList();
 		documentAcknowledgeSubscriptionActions.forEach(action -> {
-			// Complete the document
+			// Acknowledge the document
+			completeSubscriptionAction(action.getId());
+		});
+
+		// Step 6: Complete Subscription Actions - Text Acknowledge
+		// All InvestorSubscriptionAction that have type=TextAcknowledge and responsibleParty=Partner will require
+		// text acknowledging
+		List<InvestorSubscriptionAction> testAcknowledgeSubscriptionActions = investorSubscriptionActions.stream()
+				.filter(action ->
+						(action.getType() == InvestorSubscriptionAction.TypeEnum.TEXT_ACKNOWLEDGE) &&
+								action.getResponsibleParty() == InvestorSubscriptionAction.ResponsiblePartyEnum.PARTNER)
+				.toList();
+		testAcknowledgeSubscriptionActions.forEach(action -> {
+			// Acknowledge the text
 			completeSubscriptionAction(action.getId());
 		});
 
@@ -100,14 +113,18 @@ public class InvestorSubscriptionRecipes {
 	}
 
 	private static PreIPOCompanySPV choosePreIPOCompanySPV(List<PreIPOCompanySPV> preIPOCompanySPVS) {
-		return preIPOCompanySPVS.stream()
-				.filter(preIPOCompanySPV -> preIPOCompanySPV.getRemainingShareAllocation() > 0 &&
-						preIPOCompanySPV.getRemainingDollarAllocation() > 0 &&
-						preIPOCompanySPV.getNumberOfSeatsRemaining() > 0 &&
-						preIPOCompanySPV.getMonarkStage() == PRIMARY_FUNDRAISE)
-				.findFirst()
-				.orElseThrow(() -> new RuntimeException("No PreIPOCompanySPV found with remaining shares or dollar " +
-						"allocation"));
+		List<PreIPOCompanySPV> eligibleSPVs = preIPOCompanySPVS.stream()
+				.filter(spv -> spv.getRemainingShareAllocation() > 0 &&
+						spv.getRemainingDollarAllocation() > 0 &&
+						spv.getNumberOfSeatsRemaining() > 0 &&
+						spv.getMonarkStage() == PRIMARY_FUNDRAISE)
+				.toList();
+
+		if (eligibleSPVs.isEmpty()) {
+			throw new RuntimeException("No PreIPOCompanySPV found with remaining shares or dollar allocation");
+		}
+
+		return eligibleSPVs.get(current().nextInt(eligibleSPVs.size()));
 	}
 
 	private static List<PreIPOCompanySPV> getAllPreIPOCompanySPVs(UUID investorId) {
@@ -206,7 +223,7 @@ public class InvestorSubscriptionRecipes {
 			UUID subscriptionActionId
 	) {
 		try {
-			log.info("Complete document: {}", subscriptionActionId);
+			log.info("Complete subscription action: {}", subscriptionActionId);
 			investorSubscriptionActionApi1.primaryV1InvestorSubscriptionActionIdCompletePut(subscriptionActionId);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
