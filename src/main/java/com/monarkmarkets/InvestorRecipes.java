@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 
+import static com.monarkmarkets.primary.client.model.ModifyIndividualInvestor.QualifiedStatusEnum.QUALIFIED_CLIENT;
 import static java.util.concurrent.ThreadLocalRandom.current;
 import static org.apache.commons.text.CharacterPredicates.DIGITS;
 import static org.apache.commons.text.CharacterPredicates.LETTERS;
@@ -187,6 +188,7 @@ public class InvestorRecipes {
 								.passportNumber("X1234567")
 								.isSubscriptionAdvisorOrERA(true)
 								.isUSBased(true)
+								.qualifiedStatus(QUALIFIED_CLIENT)
 								.build()
 				)
 				.build());
