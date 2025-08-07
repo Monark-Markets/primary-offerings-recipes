@@ -22,7 +22,7 @@
 		<jakarta-annotation-version>3.0.0</jakarta-annotation-version>
 		<lombok.version>1.18.38</lombok.version>
 		<commons-lang3.version>3.18.0</commons-lang3.version>
-		<commons-text.version>1.13.1</commons-text.version>
+		<commons-text.version>1.14.0</commons-text.version>
 		<httpclient5.version>5.5</httpclient5.version>
 		<httpcore5.version>5.3.4</httpcore5.version>
 		<dotenv-java.version>3.2.0</dotenv-java.version>
