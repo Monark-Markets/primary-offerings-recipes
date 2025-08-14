@@ -61,9 +61,11 @@ public class InvestorRecipes {
 		// Step 1: Get all financial institutions
 		List<FinancialInstitution> financialInstitutions = getAllFinancialInstitutions();
 
-		// Select a financial institution at random
-		FinancialInstitution randomFinancialInstitution = financialInstitutions.get(
-				current().nextInt(financialInstitutions.size()));
+		// Select the default financial institution (fail fast if none configured)
+		FinancialInstitution randomFinancialInstitution = financialInstitutions.stream()
+				.filter(fi -> Boolean.TRUE.equals(fi.getIsDefault()))
+				.findFirst()
+				.orElseThrow(() -> new IllegalStateException("No default financial institution found"));
 		log.info("Selected Financial Institution: {}", randomFinancialInstitution);
 		UUID financialInstitutionId = randomFinancialInstitution.getId();
 
