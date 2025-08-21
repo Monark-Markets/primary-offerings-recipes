@@ -38,6 +38,12 @@ public class IndicationOfInterestRecipes {
 		// Step 2: Get all PreIPO Companies
 		List<PreIPOCompany> allPreIPOCompanies = getAllPreIPOCompanies();
 
+		// Check if there are any PreIPO companies available
+		if (allPreIPOCompanies.isEmpty()) {
+			log.warn("No PreIPO companies available to create indication of interest");
+			return null;
+		}
+
 		// Step 3: Select one PreIPOCompany from the list,
 		// here we pick one at random for illustration purposes
 		PreIPOCompany preIPOCompany = allPreIPOCompanies.get(random.nextInt(allPreIPOCompanies.size()));
