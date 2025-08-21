@@ -83,10 +83,12 @@ public class IndicationOfInterestRecipes {
 						null, // searchCategories (optional)
 						"UpdatedAt", // sortBy
 						"Descending", // sortOrder
-						null,
-						null,
-						null,
-						null,
+						null, // minValuation
+						null, // maxValuation
+						null, // minMinimumInvestmentAmount
+						null, // maxMinimumInvestmentAmount
+						null, // sortType (optional)
+						false, // showArchived
 						currentPage, // current page
 						pageSize // page size
 				);
@@ -98,7 +100,7 @@ public class IndicationOfInterestRecipes {
 
 				// Get pagination info
 				Pagination pagination = response.getPagination();
-				if (pagination != null) {
+				if (pagination != null && pagination.getTotalPages() != null) {
 					totalPages = pagination.getTotalPages();
 					log.info("Total pages: {}", totalPages);
 				} else {
