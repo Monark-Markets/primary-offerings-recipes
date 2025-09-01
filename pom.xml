@@ -18,7 +18,7 @@
 		<httpclient-version>5.5</httpclient-version>
 		<jackson-version>2.19.1</jackson-version>
 		<jackson-databind-version>2.19.1</jackson-databind-version>
-		<jackson-databind-nullable-version>0.2.6</jackson-databind-nullable-version>
+		<jackson-databind-nullable-version>0.2.7</jackson-databind-nullable-version>
 		<jakarta-annotation-version>3.0.0</jakarta-annotation-version>
 		<lombok.version>1.18.38</lombok.version>
 		<commons-lang3.version>3.18.0</commons-lang3.version>
