@@ -38,6 +38,12 @@ public class IndicationOfInterestRecipes {
 		// Step 2: Get all PreIPO Companies
 		List<PreIPOCompany> allPreIPOCompanies = getAllPreIPOCompanies();
 
+		// Check if there are any PreIPO companies available
+		if (allPreIPOCompanies.isEmpty()) {
+			log.warn("No PreIPO companies available to create indication of interest");
+			return null;
+		}
+
 		// Step 3: Select one PreIPOCompany from the list,
 		// here we pick one at random for illustration purposes
 		PreIPOCompany preIPOCompany = allPreIPOCompanies.get(random.nextInt(allPreIPOCompanies.size()));
@@ -83,10 +89,12 @@ public class IndicationOfInterestRecipes {
 						null, // searchCategories (optional)
 						"UpdatedAt", // sortBy
 						"Descending", // sortOrder
-						null,
-						null,
-						null,
-						null,
+						null, // minValuation
+						null, // maxValuation
+						null, // minMinimumInvestmentAmount
+						null, // maxMinimumInvestmentAmount
+						null, // sortType (optional)
+						false, // showArchived
 						currentPage, // current page
 						pageSize // page size
 				);
@@ -98,7 +106,7 @@ public class IndicationOfInterestRecipes {
 
 				// Get pagination info
 				Pagination pagination = response.getPagination();
-				if (pagination != null) {
+				if (pagination != null && pagination.getTotalPages() != null) {
 					totalPages = pagination.getTotalPages();
 					log.info("Total pages: {}", totalPages);
 				} else {

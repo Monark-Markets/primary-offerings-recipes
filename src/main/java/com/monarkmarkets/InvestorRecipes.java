@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 
+import static com.monarkmarkets.primary.client.model.ModifyIndividualInvestor.QualifiedStatusEnum.QUALIFIED_CLIENT;
 import static java.util.concurrent.ThreadLocalRandom.current;
 import static org.apache.commons.text.CharacterPredicates.DIGITS;
 import static org.apache.commons.text.CharacterPredicates.LETTERS;
@@ -60,9 +61,11 @@ public class InvestorRecipes {
 		// Step 1: Get all financial institutions
 		List<FinancialInstitution> financialInstitutions = getAllFinancialInstitutions();
 
-		// Select a financial institution at random
-		FinancialInstitution randomFinancialInstitution = financialInstitutions.get(
-				current().nextInt(financialInstitutions.size()));
+		// Select the default financial institution (fail fast if none configured)
+		FinancialInstitution randomFinancialInstitution = financialInstitutions.stream()
+				.filter(fi -> Boolean.TRUE.equals(fi.getIsDefault()))
+				.findFirst()
+				.orElseThrow(() -> new IllegalStateException("No default financial institution found"));
 		log.info("Selected Financial Institution: {}", randomFinancialInstitution);
 		UUID financialInstitutionId = randomFinancialInstitution.getId();
 
@@ -187,6 +190,7 @@ public class InvestorRecipes {
 								.passportNumber("X1234567")
 								.isSubscriptionAdvisorOrERA(true)
 								.isUSBased(true)
+								.qualifiedStatus(QUALIFIED_CLIENT)
 								.build()
 				)
 				.build());
@@ -239,7 +243,7 @@ public class InvestorRecipes {
 	private static List<FinancialInstitution> getAllFinancialInstitutions() {
 		try {
 			FinancialInstitutionApiResponse financialInstitutionResponse = financialInstitutionApi
-					.primaryV1FinancialInstitutionGet(null, null, null);
+					.primaryV1FinancialInstitutionGet(null, null, null, null);
 			return financialInstitutionResponse.getItems();
 		} catch (ApiException e) {
 			throw new RuntimeException(e);

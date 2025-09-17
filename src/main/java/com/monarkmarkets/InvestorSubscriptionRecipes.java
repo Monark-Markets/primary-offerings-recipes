@@ -63,7 +63,33 @@ public class InvestorSubscriptionRecipes {
 				getAllInvestorSubscriptionActions(investorSubscription.getId());
 		log.info("InvestorSubscriptionActions: {}", investorSubscriptionActions);
 
-		// Step 4: Complete Subscription Actions - Sign Documents
+		// Step 4: Complete Subscription Actions - Document Acknowledge
+		// All InvestorSubscriptionAction that have type=DocumentAcknowledge and responsibleParty=Partner will
+		// require document acknowledging
+		List<InvestorSubscriptionAction> documentAcknowledgeSubscriptionActions = investorSubscriptionActions.stream()
+				.filter(action ->
+						(action.getType() == InvestorSubscriptionAction.TypeEnum.DOCUMENT_ACKNOWLEDGE) &&
+								action.getResponsibleParty() == InvestorSubscriptionAction.ResponsiblePartyEnum.PARTNER)
+				.toList();
+		documentAcknowledgeSubscriptionActions.forEach(action -> {
+			// Acknowledge the document
+			completeSubscriptionAction(action.getId());
+		});
+
+		// Step 5: Complete Subscription Actions - Text Acknowledge
+		// All InvestorSubscriptionAction that have type=TextAcknowledge and responsibleParty=Partner will require
+		// text acknowledging
+		List<InvestorSubscriptionAction> textAcknowledgeSubscriptionActions = investorSubscriptionActions.stream()
+				.filter(action ->
+						(action.getType() == InvestorSubscriptionAction.TypeEnum.TEXT_ACKNOWLEDGE) &&
+								action.getResponsibleParty() == InvestorSubscriptionAction.ResponsiblePartyEnum.PARTNER)
+				.toList();
+		textAcknowledgeSubscriptionActions.forEach(action -> {
+			// Acknowledge the text
+			completeSubscriptionAction(action.getId());
+		});
+	
+		// Step 6: Complete Subscription Actions - Sign Documents
 		// All InvestorSubscriptionAction that have type=DocumentSign and responsibleParty=Partner
 		// will require document signing
 		List<InvestorSubscriptionAction> requireSigningSubscriptionActions = investorSubscriptionActions.stream()
@@ -83,33 +109,8 @@ public class InvestorSubscriptionRecipes {
 					.build());
 		});
 
-		// Step 5: Complete Subscription Actions - Document Acknowledge
-		// All InvestorSubscriptionAction that have type=DocumentAcknowledge and responsibleParty=Partner will
-		// require document acknowledging
-		List<InvestorSubscriptionAction> documentAcknowledgeSubscriptionActions = investorSubscriptionActions.stream()
-				.filter(action ->
-						(action.getType() == InvestorSubscriptionAction.TypeEnum.DOCUMENT_ACKNOWLEDGE) &&
-								action.getResponsibleParty() == InvestorSubscriptionAction.ResponsiblePartyEnum.PARTNER)
-				.toList();
-		documentAcknowledgeSubscriptionActions.forEach(action -> {
-			// Acknowledge the document
-			completeSubscriptionAction(action.getId());
-		});
-
-		// Step 6: Complete Subscription Actions - Text Acknowledge
-		// All InvestorSubscriptionAction that have type=TextAcknowledge and responsibleParty=Partner will require
-		// text acknowledging
-		List<InvestorSubscriptionAction> testAcknowledgeSubscriptionActions = investorSubscriptionActions.stream()
-				.filter(action ->
-						(action.getType() == InvestorSubscriptionAction.TypeEnum.TEXT_ACKNOWLEDGE) &&
-								action.getResponsibleParty() == InvestorSubscriptionAction.ResponsiblePartyEnum.PARTNER)
-				.toList();
-		testAcknowledgeSubscriptionActions.forEach(action -> {
-			// Acknowledge the text
-			completeSubscriptionAction(action.getId());
-		});
-
-		return investorSubscription;
+		// Step 7: Sign the Investor Subscription
+		return signInvestorSubscription(investorSubscription, investorSubscription.getId());
 	}
 
 	private static PreIPOCompanySPV choosePreIPOCompanySPV(List<PreIPOCompanySPV> preIPOCompanySPVS) {
@@ -225,6 +226,17 @@ public class InvestorSubscriptionRecipes {
 		try {
 			log.info("Complete subscription action: {}", subscriptionActionId);
 			investorSubscriptionActionApi1.primaryV1InvestorSubscriptionActionIdCompletePut(subscriptionActionId);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	private static InvestorSubscription signInvestorSubscription(InvestorSubscription investorSubscription,
+			UUID investorSubscriptionId
+	) {
+		try {
+			log.info("Sign investor subscription: {}", investorSubscription);
+			return investorSubscriptionApi.primaryV1InvestorSubscriptionIdSignPost(investorSubscriptionId);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
