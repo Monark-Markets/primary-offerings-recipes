@@ -73,6 +73,7 @@ public class PostCloseAccountViewRecipes {
 						null,
 						null,
 						null,
+						false,
 						currentPage,
 						pageSize,
 						"Descending" // sortOrder
