@@ -12,6 +12,7 @@ import com.monarkmarkets.primary.client.api.PreIpoCompanySpvApi;
 import com.monarkmarkets.primary.client.api.QuestionnaireAnswerApi;
 import com.monarkmarkets.primary.client.api.QuestionnaireApi;
 import com.monarkmarkets.primary.client.api.RegisteredFundApi;
+import com.monarkmarkets.primary.client.api.RegisteredFundSubscriptionActionApi;
 import com.monarkmarkets.primary.client.api.RegisteredFundSubscriptionApi;
 import com.monarkmarkets.primary.client.api.VersionApi;
 import com.monarkmarkets.primary.client.invoker.ApiClient;
@@ -36,6 +37,7 @@ public class ApiFactory {
 	private static FinancialAdvisorApi financialAdvisorApi;
 	private static RegisteredFundApi registeredFundApi;
 	private static RegisteredFundSubscriptionApi registeredFundSubscriptionApi;
+	private static RegisteredFundSubscriptionActionApi registeredFundSubscriptionActionApi;
 	private static FinancialInstitutionApi financialInstitutionApi;
 	private static VersionApi versionApi;
 
@@ -144,6 +146,14 @@ public class ApiFactory {
 			registeredFundSubscriptionApi = new RegisteredFundSubscriptionApi(apiClient);
 		}
 		return registeredFundSubscriptionApi;
+	}
+
+	@Synchronized
+	public static RegisteredFundSubscriptionActionApi getRegisteredFundSubscriptionActionApi() {
+		if (registeredFundSubscriptionActionApi == null) {
+			registeredFundSubscriptionActionApi = new RegisteredFundSubscriptionActionApi(apiClient);
+		}
+		return registeredFundSubscriptionActionApi;
 	}
 
 	@Synchronized

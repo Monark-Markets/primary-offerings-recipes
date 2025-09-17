@@ -1,6 +1,7 @@
 package com.monarkmarkets;
 
 import com.monarkmarkets.primary.client.api.RegisteredFundApi;
+import com.monarkmarkets.primary.client.api.RegisteredFundSubscriptionActionApi;
 import com.monarkmarkets.primary.client.api.RegisteredFundSubscriptionApi;
 import com.monarkmarkets.primary.client.invoker.ApiException;
 import com.monarkmarkets.primary.client.model.CreateRegisteredFundSubscription;
@@ -8,6 +9,7 @@ import com.monarkmarkets.primary.client.model.Pagination;
 import com.monarkmarkets.primary.client.model.RegisteredFund;
 import com.monarkmarkets.primary.client.model.RegisteredFundApiResponse;
 import com.monarkmarkets.primary.client.model.RegisteredFundSubscription;
+import com.monarkmarkets.primary.client.model.RegisteredFundSubscriptionAction;
 import com.monarkmarkets.primary.client.model.SignatureRequest;
 import lombok.extern.slf4j.Slf4j;
 
@@ -21,6 +23,7 @@ public class RegisteredFundRecipes {
 
 	private static final RegisteredFundApi registeredFundApi = ApiFactory.getRegisteredFundApi();
 	private static final RegisteredFundSubscriptionApi registeredFundSubscriptionApi = ApiFactory.getRegisteredFundSubscriptionApi();
+	private static final RegisteredFundSubscriptionActionApi registeredFundSubscriptionActionApi = ApiFactory.getRegisteredFundSubscriptionActionApi();
 
 	public static RegisteredFundSubscription submitRegisteredFundSubscription(UUID investorId) {
 		// Get all registered funds and select one at random
@@ -49,6 +52,17 @@ public class RegisteredFundRecipes {
 		UUID subscriptionId = registeredFundSubscription.getId();
 		File subscriptionPreviewPdf = createSubscriptionPreviewPdf(subscriptionId);
 		log.info("Successfully generated Fund Subscription preview. PDF location: {}", subscriptionPreviewPdf.getAbsolutePath());
+
+		// Get all the registered fund subscription actions
+		List<RegisteredFundSubscriptionAction> registeredFundSubscriptionActions =
+				getAllRegisteredFundSubscriptionActions(registeredFundSubscription.getId());
+		log.info("RegisteredFundSubscriptionActions: {}", registeredFundSubscriptionActions);
+
+		// Complete the registered fund subscription actions
+		registeredFundSubscriptionActions.forEach(action -> {
+			// Complete each action
+			completeRegisteredFundSubscriptionAction(action.getId());
+		});
 
 		// Investor Sign subscription and Advisor sign subscription
 		SignatureRequest investorSignatureRequest = SignatureRequest.builder()
@@ -129,6 +143,27 @@ public class RegisteredFundRecipes {
 			return registeredFundSubscriptionApi
 					.primaryV1RegisteredFundSubscriptionPost(createRegisteredFundSubscription);
 		} catch (ApiException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	private static List<RegisteredFundSubscriptionAction> getAllRegisteredFundSubscriptionActions(UUID registeredFundSubscriptionId) {
+		try {
+			log.info("GetAllRegisteredFundSubscriptionActions: {}", registeredFundSubscriptionId);
+			return registeredFundSubscriptionActionApi.primaryV1RegisteredFundSubscriptionActionRegisteredFundSubscriptionRegisteredFundSubscriptionIdGet(
+					registeredFundSubscriptionId, null);
+		} catch (ApiException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	private static void completeRegisteredFundSubscriptionAction(
+			UUID registeredFundSubscriptionActionId
+	) {
+		try {
+			log.info("Complete registered fund subscription action: {}", registeredFundSubscriptionActionId);
+			registeredFundSubscriptionActionApi.primaryV1RegisteredFundSubscriptionActionIdCompletePut(registeredFundSubscriptionActionId);
+		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 	}
