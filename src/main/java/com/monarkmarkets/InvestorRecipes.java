@@ -243,7 +243,7 @@ public class InvestorRecipes {
 	private static List<FinancialInstitution> getAllFinancialInstitutions() {
 		try {
 			FinancialInstitutionApiResponse financialInstitutionResponse = financialInstitutionApi
-					.primaryV1FinancialInstitutionGet(null, null, null);
+					.primaryV1FinancialInstitutionGet(null, null, null, null);
 			return financialInstitutionResponse.getItems();
 		} catch (ApiException e) {
 			throw new RuntimeException(e);

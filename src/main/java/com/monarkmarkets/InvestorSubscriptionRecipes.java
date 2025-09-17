@@ -109,7 +109,8 @@ public class InvestorSubscriptionRecipes {
 					.build());
 		});
 
-		return investorSubscription;
+		// Step 7: Sign the Investor Subscription
+		return signInvestorSubscription(investorSubscription, investorSubscription.getId());
 	}
 
 	private static PreIPOCompanySPV choosePreIPOCompanySPV(List<PreIPOCompanySPV> preIPOCompanySPVS) {
@@ -225,6 +226,17 @@ public class InvestorSubscriptionRecipes {
 		try {
 			log.info("Complete subscription action: {}", subscriptionActionId);
 			investorSubscriptionActionApi1.primaryV1InvestorSubscriptionActionIdCompletePut(subscriptionActionId);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	private static InvestorSubscription signInvestorSubscription(InvestorSubscription investorSubscription,
+			UUID investorSubscriptionId
+	) {
+		try {
+			log.info("Sign investor subscription: {}", investorSubscription);
+			return investorSubscriptionApi.primaryV1InvestorSubscriptionIdSignPost(investorSubscriptionId);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
