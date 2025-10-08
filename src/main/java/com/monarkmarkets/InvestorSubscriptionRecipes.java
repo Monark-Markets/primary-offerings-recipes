@@ -30,7 +30,6 @@ public class InvestorSubscriptionRecipes {
 	private static final InvestorSubscriptionApi investorSubscriptionApi = ApiFactory.getInvestorSubscriptionApi();
 	private static final InvestorSubscriptionActionApi investorSubscriptionActionApi = ApiFactory.getInvestorSubscriptionActionApi();
 	private static final DocumentApi documentApi = ApiFactory.getDocumentApi();
-	private static final InvestorSubscriptionActionApi investorSubscriptionActionApi1 = ApiFactory.getInvestorSubscriptionActionApi();
 
 	/**
 	 * Subscription Creation
@@ -43,19 +42,53 @@ public class InvestorSubscriptionRecipes {
 		// Step 1: Get a PreIPOCompanySPV
 		// SPVs can only accept Subscriptions from Investors when the MonarkStage field is set to PRIMARY_FUNDRAISE
 		List<PreIPOCompanySPV> preIPOCompanySPVs = getAllPreIPOCompanySPVs(investorId);
-		PreIPOCompanySPV preIPOCompanySPV = choosePreIPOCompanySPV(preIPOCompanySPVs);
-		log.info("PreIPOCompanySPV: {}", preIPOCompanySPV);
 
-		// Step 1.1: Calculate the Subscription Amount based on the subscription rules
-		SubscriptionAmount amount = SubscriptionCalculator.calculateSubscriptionAmount(preIPOCompanySPV);
+		// Build eligible list once so we can try different SPVs if one isn't approved
+		List<PreIPOCompanySPV> eligibleSPVs = preIPOCompanySPVs.stream()
+				.filter(spv ->
+						spv.getRemainingShareAllocation() > 0 &&
+								spv.getRemainingDollarAllocation() > 0 &&
+								spv.getNumberOfSeatsRemaining() > 0 &&
+								spv.getMonarkStage() == PRIMARY_FUNDRAISE)
+				.toList();
 
-		// Step 2: Create a Subscription for the investor to the PreIPOCompanySPV
-		CreateInvestorSubscription createInvestorSubscription = CreateInvestorSubscription.builder()
-				.preIPOCompanySPVId(preIPOCompanySPV.getId())
-				.investorId(investorId)
-				.amountReservedDollars(amount.amountReservedDollars)
-				.build();
-		InvestorSubscription investorSubscription = createInvestorSubscription(createInvestorSubscription);
+		if (eligibleSPVs.isEmpty()) {
+			throw new RuntimeException("No PreIPOCompanySPV found with remaining shares or dollar allocation");
+		}
+
+		InvestorSubscription investorSubscription = null;
+		PreIPOCompanySPV preIPOCompanySPV = null;
+		List<PreIPOCompanySPV> toTry = new ArrayList<>(eligibleSPVs);
+		while (!toTry.isEmpty()) {
+			int idx = current().nextInt(toTry.size());
+			preIPOCompanySPV = toTry.remove(idx);
+			log.info("PreIPOCompanySPV: {}", preIPOCompanySPV);
+
+			// Step 1.1: Calculate the Subscription Amount based on the subscription rules
+			SubscriptionAmount amount = SubscriptionCalculator.calculateSubscriptionAmount(preIPOCompanySPV);
+
+			// Step 2: Create a Subscription for the investor to the PreIPOCompanySPV
+			CreateInvestorSubscription createInvestorSubscription = CreateInvestorSubscription.builder()
+					.preIPOCompanySPVId(preIPOCompanySPV.getId())
+					.investorId(investorId)
+					.amountReservedDollars(amount.amountReservedDollars)
+					.build();
+			try {
+				investorSubscription = createInvestorSubscription(createInvestorSubscription);
+				break; // success
+			} catch (RuntimeException ex) {
+				if (isSpvNotApproved(ex)) {
+					log.warn("SPV {} not approved yet. Trying a different SPV...", preIPOCompanySPV.getId());
+					continue; // try next SPV
+				}
+				throw ex; // Not an approval error: rethrow
+			}
+		}
+
+		if (investorSubscription == null) {
+			throw new RuntimeException("Failed to create Investor Subscription: no approved SPV found to subscribe to");
+		}
+
 		log.info("InvestorSubscription: {}", investorSubscription);
 
 		// Step 3: Get all SubscriptionActions by Subscription
@@ -113,20 +146,6 @@ public class InvestorSubscriptionRecipes {
 		return signInvestorSubscription(investorSubscription, investorSubscription.getId());
 	}
 
-	private static PreIPOCompanySPV choosePreIPOCompanySPV(List<PreIPOCompanySPV> preIPOCompanySPVS) {
-		List<PreIPOCompanySPV> eligibleSPVs = preIPOCompanySPVS.stream()
-				.filter(spv -> spv.getRemainingShareAllocation() > 0 &&
-						spv.getRemainingDollarAllocation() > 0 &&
-						spv.getNumberOfSeatsRemaining() > 0 &&
-						spv.getMonarkStage() == PRIMARY_FUNDRAISE)
-				.toList();
-
-		if (eligibleSPVs.isEmpty()) {
-			throw new RuntimeException("No PreIPOCompanySPV found with remaining shares or dollar allocation");
-		}
-
-		return eligibleSPVs.get(current().nextInt(eligibleSPVs.size()));
-	}
 
 	private static List<PreIPOCompanySPV> getAllPreIPOCompanySPVs(UUID investorId) {
 		try {
@@ -225,7 +244,7 @@ public class InvestorSubscriptionRecipes {
 	) {
 		try {
 			log.info("Complete subscription action: {}", subscriptionActionId);
-			investorSubscriptionActionApi1.primaryV1InvestorSubscriptionActionIdCompletePut(subscriptionActionId);
+			investorSubscriptionActionApi.primaryV1InvestorSubscriptionActionIdCompletePut(subscriptionActionId);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -240,5 +259,20 @@ public class InvestorSubscriptionRecipes {
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	// Helper to detect the specific approval error from API
+	private static boolean isSpvNotApproved(RuntimeException ex) {
+		Throwable cause = ex.getCause();
+		if (cause instanceof ApiException apiEx) {
+			return isSpvNotApproved(apiEx);
+		}
+		return false;
+	}
+
+	private static boolean isSpvNotApproved(ApiException apiEx) {
+		int code = apiEx.getCode();
+		String body = apiEx.getResponseBody();
+		return code == 403 && body != null && body.contains("Partner has not approved this SPV");
 	}
 }
