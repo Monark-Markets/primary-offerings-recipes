@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static com.monarkmarkets.primary.client.model.PreIPOCompanySPV.MonarkStageEnum.PRIMARY_FUNDRAISE;
+import static java.lang.Boolean.TRUE;
 import static java.util.concurrent.ThreadLocalRandom.current;
 
 @Slf4j
@@ -42,53 +43,19 @@ public class InvestorSubscriptionRecipes {
 		// Step 1: Get a PreIPOCompanySPV
 		// SPVs can only accept Subscriptions from Investors when the MonarkStage field is set to PRIMARY_FUNDRAISE
 		List<PreIPOCompanySPV> preIPOCompanySPVs = getAllPreIPOCompanySPVs(investorId);
+		PreIPOCompanySPV preIPOCompanySPV = choosePreIPOCompanySPV(preIPOCompanySPVs);
+		log.info("PreIPOCompanySPV: {}", preIPOCompanySPV);
 
-		// Build eligible list once so we can try different SPVs if one isn't approved
-		List<PreIPOCompanySPV> eligibleSPVs = preIPOCompanySPVs.stream()
-				.filter(spv ->
-						spv.getRemainingShareAllocation() > 0 &&
-								spv.getRemainingDollarAllocation() > 0 &&
-								spv.getNumberOfSeatsRemaining() > 0 &&
-								spv.getMonarkStage() == PRIMARY_FUNDRAISE)
-				.toList();
+		// Step 1.1: Calculate the Subscription Amount based on the subscription rules
+		SubscriptionAmount amount = SubscriptionCalculator.calculateSubscriptionAmount(preIPOCompanySPV);
 
-		if (eligibleSPVs.isEmpty()) {
-			throw new RuntimeException("No PreIPOCompanySPV found with remaining shares or dollar allocation");
-		}
-
-		InvestorSubscription investorSubscription = null;
-		PreIPOCompanySPV preIPOCompanySPV = null;
-		List<PreIPOCompanySPV> toTry = new ArrayList<>(eligibleSPVs);
-		while (!toTry.isEmpty()) {
-			int idx = current().nextInt(toTry.size());
-			preIPOCompanySPV = toTry.remove(idx);
-			log.info("PreIPOCompanySPV: {}", preIPOCompanySPV);
-
-			// Step 1.1: Calculate the Subscription Amount based on the subscription rules
-			SubscriptionAmount amount = SubscriptionCalculator.calculateSubscriptionAmount(preIPOCompanySPV);
-
-			// Step 2: Create a Subscription for the investor to the PreIPOCompanySPV
-			CreateInvestorSubscription createInvestorSubscription = CreateInvestorSubscription.builder()
-					.preIPOCompanySPVId(preIPOCompanySPV.getId())
-					.investorId(investorId)
-					.amountReservedDollars(amount.amountReservedDollars)
-					.build();
-			try {
-				investorSubscription = createInvestorSubscription(createInvestorSubscription);
-				break; // success
-			} catch (RuntimeException ex) {
-				if (isSpvNotApproved(ex)) {
-					log.warn("SPV {} not approved yet. Trying a different SPV...", preIPOCompanySPV.getId());
-					continue; // try next SPV
-				}
-				throw ex; // Not an approval error: rethrow
-			}
-		}
-
-		if (investorSubscription == null) {
-			throw new RuntimeException("Failed to create Investor Subscription: no approved SPV found to subscribe to");
-		}
-
+		// Step 2: Create a Subscription for the investor to the PreIPOCompanySPV
+		CreateInvestorSubscription createInvestorSubscription = CreateInvestorSubscription.builder()
+				.preIPOCompanySPVId(preIPOCompanySPV.getId())
+				.investorId(investorId)
+				.amountReservedDollars(amount.amountReservedDollars)
+				.build();
+		InvestorSubscription investorSubscription = createInvestorSubscription(createInvestorSubscription);
 		log.info("InvestorSubscription: {}", investorSubscription);
 
 		// Step 3: Get all SubscriptionActions by Subscription
@@ -101,8 +68,7 @@ public class InvestorSubscriptionRecipes {
 		// require document acknowledging
 		List<InvestorSubscriptionAction> documentAcknowledgeSubscriptionActions = investorSubscriptionActions.stream()
 				.filter(action ->
-						(action.getType() == InvestorSubscriptionAction.TypeEnum.DOCUMENT_ACKNOWLEDGE) &&
-								action.getResponsibleParty() == InvestorSubscriptionAction.ResponsiblePartyEnum.PARTNER)
+						(action.getType() == InvestorSubscriptionAction.TypeEnum.DOCUMENT_ACKNOWLEDGE))
 				.toList();
 		documentAcknowledgeSubscriptionActions.forEach(action -> {
 			// Acknowledge the document
@@ -114,8 +80,7 @@ public class InvestorSubscriptionRecipes {
 		// text acknowledging
 		List<InvestorSubscriptionAction> textAcknowledgeSubscriptionActions = investorSubscriptionActions.stream()
 				.filter(action ->
-						(action.getType() == InvestorSubscriptionAction.TypeEnum.TEXT_ACKNOWLEDGE) &&
-								action.getResponsibleParty() == InvestorSubscriptionAction.ResponsiblePartyEnum.PARTNER)
+						(action.getType() == InvestorSubscriptionAction.TypeEnum.TEXT_ACKNOWLEDGE))
 				.toList();
 		textAcknowledgeSubscriptionActions.forEach(action -> {
 			// Acknowledge the text
@@ -127,8 +92,7 @@ public class InvestorSubscriptionRecipes {
 		// will require document signing
 		List<InvestorSubscriptionAction> requireSigningSubscriptionActions = investorSubscriptionActions.stream()
 				.filter(action ->
-						action.getType() == InvestorSubscriptionAction.TypeEnum.DOCUMENT_SIGN &&
-								action.getResponsibleParty() == InvestorSubscriptionAction.ResponsiblePartyEnum.PARTNER)
+						action.getType() == InvestorSubscriptionAction.TypeEnum.DOCUMENT_SIGN)
 				.toList();
 		requireSigningSubscriptionActions.forEach(action -> {
 			// Get the document by id
@@ -146,6 +110,21 @@ public class InvestorSubscriptionRecipes {
 		return signInvestorSubscription(investorSubscription, investorSubscription.getId());
 	}
 
+	private static PreIPOCompanySPV choosePreIPOCompanySPV(List<PreIPOCompanySPV> preIPOCompanySPVS) {
+		List<PreIPOCompanySPV> eligibleSPVs = preIPOCompanySPVS.stream()
+				.filter(spv -> spv.getRemainingShareAllocation() > 0 &&
+						spv.getRemainingDollarAllocation() > 0 &&
+						spv.getNumberOfSeatsRemaining() > 0 &&
+						spv.getMonarkStage() == PRIMARY_FUNDRAISE &&
+						TRUE.equals(spv.getIsApproved()))
+				.toList();
+
+		if (eligibleSPVs.isEmpty()) {
+			throw new RuntimeException("No PreIPOCompanySPV found with remaining shares or dollar allocation");
+		}
+
+		return eligibleSPVs.get(current().nextInt(eligibleSPVs.size()));
+	}
 
 	private static List<PreIPOCompanySPV> getAllPreIPOCompanySPVs(UUID investorId) {
 		try {
@@ -160,8 +139,10 @@ public class InvestorSubscriptionRecipes {
 			// Loop through pages
 			while (currentPage <= totalPages) {
 				log.info("Fetching page {} with pageSize {}", currentPage, pageSize);
-				PreIPOCompanySPVApiResponse response = preIpoCompanySpvApi.primaryV1PreIpoCompanySpvInvestorInvestorIdGet(
+				PreIPOCompanySPVApiResponse response =
+						preIpoCompanySpvApi.getAllPreIPOCompanySPVs(
 						investorId,
+						null,
 						null,
 						null,
 						null,
@@ -203,7 +184,7 @@ public class InvestorSubscriptionRecipes {
 	private static InvestorSubscription createInvestorSubscription(CreateInvestorSubscription createInvestorSubscription) {
 		try {
 			log.info("Create investor subscription: {}", createInvestorSubscription);
-			return investorSubscriptionApi.primaryV1InvestorSubscriptionPost(createInvestorSubscription);
+			return investorSubscriptionApi.createInvestorSubscription(createInvestorSubscription);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -212,7 +193,7 @@ public class InvestorSubscriptionRecipes {
 	private static List<InvestorSubscriptionAction> getAllInvestorSubscriptionActions(UUID investorSubscriptionId) {
 		try {
 			log.info("GetAllInvestorSubscriptionActions: {}", investorSubscriptionId);
-			return investorSubscriptionActionApi.primaryV1InvestorSubscriptionActionInvestorSubscriptionInvestorSubscriptionIdGet(investorSubscriptionId);
+			return investorSubscriptionActionApi.getAllInvestorSubscriptionActions(investorSubscriptionId);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -221,7 +202,7 @@ public class InvestorSubscriptionRecipes {
 	private static Document getDocument(UUID documentId) {
 		try {
 			log.info("Get document: {}", documentId);
-			return documentApi.primaryV1DocumentIdGet(documentId);
+			return documentApi.getDocumentById(documentId);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -233,7 +214,7 @@ public class InvestorSubscriptionRecipes {
 	) {
 		try {
 			log.info("Sign document: {}, signDocument: {}", documentId, signDocument);
-			documentApi.primaryV1DocumentIdSignPost(documentId, signDocument);
+			documentApi.signDocument(documentId, signDocument);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -244,7 +225,7 @@ public class InvestorSubscriptionRecipes {
 	) {
 		try {
 			log.info("Complete subscription action: {}", subscriptionActionId);
-			investorSubscriptionActionApi.primaryV1InvestorSubscriptionActionIdCompletePut(subscriptionActionId);
+			investorSubscriptionActionApi.completeInvestorSubscriptionAction(subscriptionActionId, null);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -255,24 +236,9 @@ public class InvestorSubscriptionRecipes {
 	) {
 		try {
 			log.info("Sign investor subscription: {}", investorSubscription);
-			return investorSubscriptionApi.primaryV1InvestorSubscriptionIdSignPost(investorSubscriptionId);
+			return investorSubscriptionApi.signInvestorSubscription(investorSubscriptionId, null);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
-	}
-
-	// Helper to detect the specific approval error from API
-	private static boolean isSpvNotApproved(RuntimeException ex) {
-		Throwable cause = ex.getCause();
-		if (cause instanceof ApiException apiEx) {
-			return isSpvNotApproved(apiEx);
-		}
-		return false;
-	}
-
-	private static boolean isSpvNotApproved(ApiException apiEx) {
-		int code = apiEx.getCode();
-		String body = apiEx.getResponseBody();
-		return code == 403 && body != null && body.contains("Partner has not approved this SPV");
 	}
 }

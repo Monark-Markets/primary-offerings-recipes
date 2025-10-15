@@ -101,11 +101,11 @@ public class RegisteredFundRecipes {
 			while (currentPage <= totalPages) {
 				log.info("Fetching page {} with pageSize {}", currentPage, pageSize);
 				RegisteredFundApiResponse response
-						= registeredFundApi.primaryV1RegisteredFundGet(
-						null,
-						null,
+						= registeredFundApi.getAllRegisteredFunds(
 						currentPage,
-						pageSize
+						pageSize,
+						null,
+						null
 				);
 
 				// Extract items and append to the result list
@@ -141,7 +141,7 @@ public class RegisteredFundRecipes {
 		try {
 			log.info("Create Registered Fund Subscription: {}", createRegisteredFundSubscription);
 			return registeredFundSubscriptionApi
-					.primaryV1RegisteredFundSubscriptionPost(createRegisteredFundSubscription);
+					.createRegisteredFundSubscription(createRegisteredFundSubscription);
 		} catch (ApiException e) {
 			throw new RuntimeException(e);
 		}
@@ -150,7 +150,7 @@ public class RegisteredFundRecipes {
 	private static List<RegisteredFundSubscriptionAction> getAllRegisteredFundSubscriptionActions(UUID registeredFundSubscriptionId) {
 		try {
 			log.info("GetAllRegisteredFundSubscriptionActions: {}", registeredFundSubscriptionId);
-			return registeredFundSubscriptionActionApi.primaryV1RegisteredFundSubscriptionActionRegisteredFundSubscriptionRegisteredFundSubscriptionIdGet(
+			return registeredFundSubscriptionActionApi.getAllRegisteredFundSubscriptionActions(
 					registeredFundSubscriptionId, null);
 		} catch (ApiException e) {
 			throw new RuntimeException(e);
@@ -162,7 +162,8 @@ public class RegisteredFundRecipes {
 	) {
 		try {
 			log.info("Complete registered fund subscription action: {}", registeredFundSubscriptionActionId);
-			registeredFundSubscriptionActionApi.primaryV1RegisteredFundSubscriptionActionIdCompletePut(registeredFundSubscriptionActionId);
+			registeredFundSubscriptionActionApi.completeRegisteredFundSubscriptionAction(
+					registeredFundSubscriptionActionId, null);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -171,7 +172,7 @@ public class RegisteredFundRecipes {
 	private static File createSubscriptionPreviewPdf(UUID subscriptionId) {
 		try {
 			log.info("Creating subscription preview PDF for subscriptionId: {}", subscriptionId);
-			return registeredFundSubscriptionApi.primaryV1RegisteredFundSubscriptionIdPreviewPost(subscriptionId);
+			return registeredFundSubscriptionApi.generateRegisteredFundSubscriptionPreview(subscriptionId, null);
 		} catch (ApiException e) {
 			throw new RuntimeException(e);
 		}
@@ -183,7 +184,7 @@ public class RegisteredFundRecipes {
 	) {
 		try {
 			log.info("Sending Registered Fund Subscription Investor Signed for subscriptionId: {}", subscriptionId);
-			return registeredFundSubscriptionApi.primaryV1RegisteredFundSubscriptionIdSignInvestorPost(subscriptionId, investorSignatureRequest);
+			return registeredFundSubscriptionApi.signRegisteredFundSubscriptionByInvestor(subscriptionId, investorSignatureRequest);
 		} catch (ApiException e) {
 			throw new RuntimeException(e);
 		}
@@ -195,7 +196,7 @@ public class RegisteredFundRecipes {
 	) {
 		try {
 			log.info("Sending Registered Fund Subscription Advisor Signed for subscriptionId: {}", subscriptionId);
-			return registeredFundSubscriptionApi.primaryV1RegisteredFundSubscriptionIdSignAdvisorPost(subscriptionId, advisorSignatureRequest);
+			return registeredFundSubscriptionApi.signRegisteredFundSubscriptionByAdvisor(subscriptionId, advisorSignatureRequest);
 		} catch (ApiException e) {
 			throw new RuntimeException(e);
 		}

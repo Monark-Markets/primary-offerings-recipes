@@ -42,7 +42,7 @@ public class PostCloseAccountViewRecipes {
 	private static List<InvestorSubscription> getAllInvestorSubscriptions(UUID investorId) {
 		try {
 			log.info("Get all investor subscriptions: {}", investorId);
-			return investorSubscriptionApi.primaryV1InvestorSubscriptionInvestorInvestorIdGet(investorId);
+			return investorSubscriptionApi.getInvestorSubscriptionsByInvestor(investorId);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -64,7 +64,7 @@ public class PostCloseAccountViewRecipes {
 			// Loop through pages
 			while (currentPage <= totalPages) {
 				log.info("Fetching page {} with pageSize {}", currentPage, pageSize);
-				DocumentApiResponse response = documentApi.primaryV1DocumentGet(
+				DocumentApiResponse response = documentApi.getAllDocuments(
 						investorId,
 						null,
 						null,
@@ -73,9 +73,9 @@ public class PostCloseAccountViewRecipes {
 						null,
 						null,
 						null,
-						false,
 						currentPage,
 						pageSize,
+						false,
 						"Descending" // sortOrder
 				);
 
