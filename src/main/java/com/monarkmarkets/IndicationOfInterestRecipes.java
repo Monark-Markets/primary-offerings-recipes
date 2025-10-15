@@ -65,7 +65,7 @@ public class IndicationOfInterestRecipes {
 	private static Investor getInvestorByReferenceId(String investorReferenceId) {
 		try {
 			log.info("Getting investor by referenceId: {}", investorReferenceId);
-			return investorApi.primaryV1InvestorByReferenceInvestorReferenceIdGet(investorReferenceId);
+			return investorApi.getInvestorByInvestorReference(investorReferenceId);
 		} catch (ApiException e) {
 			throw new RuntimeException(e);
 		}
@@ -84,19 +84,19 @@ public class IndicationOfInterestRecipes {
 			// Loop through pages
 			while (currentPage <= totalPages) {
 				log.info("Fetching page {} with pageSize {}", currentPage, pageSize);
-				PreIPOCompanyApiResponse response = preIpoCompanyApi.primaryV1PreIpoCompanyGet(
+				PreIPOCompanyApiResponse response = preIpoCompanyApi.getAllPreIPOCompanies(
+						currentPage, // current page
+						pageSize, // page size
 						null, // searchTerm (optional)
 						null, // searchCategories (optional)
 						"UpdatedAt", // sortBy
 						"Descending", // sortOrder
-						null, // minValuation
-						null, // maxValuation
-						null, // minMinimumInvestmentAmount
-						null, // maxMinimumInvestmentAmount
-						null, // sortType (optional)
-						false, // showArchived
-						currentPage, // current page
-						pageSize // page size
+						null, // minLastValuation
+						null, // maxLastValuation
+						null, // minTotalFunding
+						null, // maxTotalFunding
+						null, // listingType
+						null // isActive
 				);
 
 				// Extract items and append to the result list
@@ -130,7 +130,7 @@ public class IndicationOfInterestRecipes {
 	private static IndicationOfInterest createIndicationOfInterest(CreateIndicationOfInterest createIndicationOfInterest) {
 		try {
 			log.info("Create indication of interest: {}", createIndicationOfInterest);
-			return indicationOfInterestApi.primaryV1IndicationOfInterestPost(createIndicationOfInterest);
+			return indicationOfInterestApi.createIndicationOfInterest(createIndicationOfInterest);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
