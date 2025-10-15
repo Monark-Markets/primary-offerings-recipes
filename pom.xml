@@ -16,7 +16,7 @@
 		<jar.finalName>${project.artifactId}-${project.version}</jar.finalName>
 
 		<httpclient-version>5.5.1</httpclient-version>
-		<jackson-version>2.19.2</jackson-version>
+		<jackson-version>2.20.0</jackson-version>
 		<jackson-databind-version>2.19.2</jackson-databind-version>
 		<jackson-databind-nullable-version>0.2.7</jackson-databind-nullable-version>
 		<jakarta-annotation-version>3.0.0</jakarta-annotation-version>
