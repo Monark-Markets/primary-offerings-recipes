@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static com.monarkmarkets.primary.client.model.PreIPOCompanySPV.MonarkStageEnum.PRIMARY_FUNDRAISE;
+import static java.lang.Boolean.TRUE;
 import static java.util.concurrent.ThreadLocalRandom.current;
 
 @Slf4j
@@ -30,7 +31,6 @@ public class InvestorSubscriptionRecipes {
 	private static final InvestorSubscriptionApi investorSubscriptionApi = ApiFactory.getInvestorSubscriptionApi();
 	private static final InvestorSubscriptionActionApi investorSubscriptionActionApi = ApiFactory.getInvestorSubscriptionActionApi();
 	private static final DocumentApi documentApi = ApiFactory.getDocumentApi();
-	private static final InvestorSubscriptionActionApi investorSubscriptionActionApi1 = ApiFactory.getInvestorSubscriptionActionApi();
 
 	/**
 	 * Subscription Creation
@@ -68,8 +68,7 @@ public class InvestorSubscriptionRecipes {
 		// require document acknowledging
 		List<InvestorSubscriptionAction> documentAcknowledgeSubscriptionActions = investorSubscriptionActions.stream()
 				.filter(action ->
-						(action.getType() == InvestorSubscriptionAction.TypeEnum.DOCUMENT_ACKNOWLEDGE) &&
-								action.getResponsibleParty() == InvestorSubscriptionAction.ResponsiblePartyEnum.PARTNER)
+						(action.getType() == InvestorSubscriptionAction.TypeEnum.DOCUMENT_ACKNOWLEDGE))
 				.toList();
 		documentAcknowledgeSubscriptionActions.forEach(action -> {
 			// Acknowledge the document
@@ -81,8 +80,7 @@ public class InvestorSubscriptionRecipes {
 		// text acknowledging
 		List<InvestorSubscriptionAction> textAcknowledgeSubscriptionActions = investorSubscriptionActions.stream()
 				.filter(action ->
-						(action.getType() == InvestorSubscriptionAction.TypeEnum.TEXT_ACKNOWLEDGE) &&
-								action.getResponsibleParty() == InvestorSubscriptionAction.ResponsiblePartyEnum.PARTNER)
+						(action.getType() == InvestorSubscriptionAction.TypeEnum.TEXT_ACKNOWLEDGE))
 				.toList();
 		textAcknowledgeSubscriptionActions.forEach(action -> {
 			// Acknowledge the text
@@ -94,8 +92,7 @@ public class InvestorSubscriptionRecipes {
 		// will require document signing
 		List<InvestorSubscriptionAction> requireSigningSubscriptionActions = investorSubscriptionActions.stream()
 				.filter(action ->
-						action.getType() == InvestorSubscriptionAction.TypeEnum.DOCUMENT_SIGN &&
-								action.getResponsibleParty() == InvestorSubscriptionAction.ResponsiblePartyEnum.PARTNER)
+						action.getType() == InvestorSubscriptionAction.TypeEnum.DOCUMENT_SIGN)
 				.toList();
 		requireSigningSubscriptionActions.forEach(action -> {
 			// Get the document by id
@@ -118,7 +115,8 @@ public class InvestorSubscriptionRecipes {
 				.filter(spv -> spv.getRemainingShareAllocation() > 0 &&
 						spv.getRemainingDollarAllocation() > 0 &&
 						spv.getNumberOfSeatsRemaining() > 0 &&
-						spv.getMonarkStage() == PRIMARY_FUNDRAISE)
+						spv.getMonarkStage() == PRIMARY_FUNDRAISE &&
+						TRUE.equals(spv.getIsApproved()))
 				.toList();
 
 		if (eligibleSPVs.isEmpty()) {
@@ -141,8 +139,10 @@ public class InvestorSubscriptionRecipes {
 			// Loop through pages
 			while (currentPage <= totalPages) {
 				log.info("Fetching page {} with pageSize {}", currentPage, pageSize);
-				PreIPOCompanySPVApiResponse response = preIpoCompanySpvApi.primaryV1PreIpoCompanySpvInvestorInvestorIdGet(
+				PreIPOCompanySPVApiResponse response =
+						preIpoCompanySpvApi.getAllPreIPOCompanySPVs(
 						investorId,
+						null,
 						null,
 						null,
 						null,
@@ -184,7 +184,7 @@ public class InvestorSubscriptionRecipes {
 	private static InvestorSubscription createInvestorSubscription(CreateInvestorSubscription createInvestorSubscription) {
 		try {
 			log.info("Create investor subscription: {}", createInvestorSubscription);
-			return investorSubscriptionApi.primaryV1InvestorSubscriptionPost(createInvestorSubscription);
+			return investorSubscriptionApi.createInvestorSubscription(createInvestorSubscription);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -193,7 +193,7 @@ public class InvestorSubscriptionRecipes {
 	private static List<InvestorSubscriptionAction> getAllInvestorSubscriptionActions(UUID investorSubscriptionId) {
 		try {
 			log.info("GetAllInvestorSubscriptionActions: {}", investorSubscriptionId);
-			return investorSubscriptionActionApi.primaryV1InvestorSubscriptionActionInvestorSubscriptionInvestorSubscriptionIdGet(investorSubscriptionId);
+			return investorSubscriptionActionApi.getAllInvestorSubscriptionActions(investorSubscriptionId);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -202,7 +202,7 @@ public class InvestorSubscriptionRecipes {
 	private static Document getDocument(UUID documentId) {
 		try {
 			log.info("Get document: {}", documentId);
-			return documentApi.primaryV1DocumentIdGet(documentId);
+			return documentApi.getDocumentById(documentId);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -214,7 +214,7 @@ public class InvestorSubscriptionRecipes {
 	) {
 		try {
 			log.info("Sign document: {}, signDocument: {}", documentId, signDocument);
-			documentApi.primaryV1DocumentIdSignPost(documentId, signDocument);
+			documentApi.signDocument(documentId, signDocument);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -225,7 +225,7 @@ public class InvestorSubscriptionRecipes {
 	) {
 		try {
 			log.info("Complete subscription action: {}", subscriptionActionId);
-			investorSubscriptionActionApi1.primaryV1InvestorSubscriptionActionIdCompletePut(subscriptionActionId);
+			investorSubscriptionActionApi.completeInvestorSubscriptionAction(subscriptionActionId, null);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -236,7 +236,7 @@ public class InvestorSubscriptionRecipes {
 	) {
 		try {
 			log.info("Sign investor subscription: {}", investorSubscription);
-			return investorSubscriptionApi.primaryV1InvestorSubscriptionIdSignPost(investorSubscriptionId);
+			return investorSubscriptionApi.signInvestorSubscription(investorSubscriptionId, null);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}

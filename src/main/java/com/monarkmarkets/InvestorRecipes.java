@@ -29,7 +29,6 @@ import java.util.Random;
 import java.util.UUID;
 
 import static com.monarkmarkets.primary.client.model.ModifyIndividualInvestor.QualifiedStatusEnum.QUALIFIED_CLIENT;
-import static java.util.concurrent.ThreadLocalRandom.current;
 import static org.apache.commons.text.CharacterPredicates.DIGITS;
 import static org.apache.commons.text.CharacterPredicates.LETTERS;
 
@@ -214,7 +213,7 @@ public class InvestorRecipes {
 	private static Investor createInvestor(CreateInvestor createInvestor) {
 		try {
 			log.info("Create investor {}: {}", createInvestor.getInvestorReferenceId(), createInvestor);
-			return investorApi.primaryV1InvestorPost(createInvestor);
+			return investorApi.createInvestor(createInvestor);
 		} catch (ApiException e) {
 			throw new RuntimeException(e);
 		}
@@ -224,7 +223,7 @@ public class InvestorRecipes {
 		try {
 			log.info("Fetch all questionnaires");
 			QuestionnaireApiResponse questionnaireApiResponse =
-					questionnaireApi.primaryV1QuestionnaireGet(null, null, null);
+					questionnaireApi.getAllQuestionnaires(null, null, null);
 			return questionnaireApiResponse.getItems();
 		} catch (ApiException e) {
 			throw new RuntimeException(e);
@@ -234,7 +233,7 @@ public class InvestorRecipes {
 	private static QuestionnaireAnswer createQuestionnaireAnswer(CreateQuestionnaireAnswer createQuestionnaireAnswer) {
 		try {
 			log.info("Create questionnaire answer: {}", createQuestionnaireAnswer);
-			return questionnaireAnswerApi.primaryV1QuestionnaireAnswerPost(createQuestionnaireAnswer);
+			return questionnaireAnswerApi.createQuestionnaireAnswer(createQuestionnaireAnswer);
 		} catch (ApiException e) {
 			throw new RuntimeException(e);
 		}
@@ -243,7 +242,7 @@ public class InvestorRecipes {
 	private static List<FinancialInstitution> getAllFinancialInstitutions() {
 		try {
 			FinancialInstitutionApiResponse financialInstitutionResponse = financialInstitutionApi
-					.primaryV1FinancialInstitutionGet(null, null, null, null);
+					.getAllFinancialInstitutions(null, null, null, null);
 			return financialInstitutionResponse.getItems();
 		} catch (ApiException e) {
 			throw new RuntimeException(e);
@@ -253,7 +252,7 @@ public class InvestorRecipes {
 	private static FinancialAdvisor createFinancialAdvisor(CreateFinancialAdvisor createFinancialAdvisor) {
 		try {
 			log.info("Create financial advisor: {}", createFinancialAdvisor);
-			return financialAdvisorApi.primaryV1FinancialAdvisorPost(createFinancialAdvisor);
+			return financialAdvisorApi.createFinancialAdvisor(createFinancialAdvisor);
 		} catch (ApiException e) {
 			throw new RuntimeException(e);
 		}
@@ -262,7 +261,7 @@ public class InvestorRecipes {
 	private static Investor updateInvestor(UpdateInvestor updateInvestor) {
 		try {
 			log.info("Update investor details: {}", updateInvestor);
-			return investorApi.primaryV1InvestorPut(updateInvestor);
+			return investorApi.updateInvestor(updateInvestor);
 		} catch (ApiException e) {
 			throw new RuntimeException(e);
 		}
@@ -271,7 +270,7 @@ public class InvestorRecipes {
 	private static void updateInvestorAccreditation(UpdateInvestorAccreditation updateInvestorAccreditation) {
 		try {
 			log.info("Update accreditation status: {}", updateInvestorAccreditation);
-			investorApi.primaryV1InvestorAccreditationPut(updateInvestorAccreditation);
+			investorApi.updateInvestorAccreditation(updateInvestorAccreditation);
 		} catch (ApiException e) {
 			throw new RuntimeException(e);
 		}
@@ -280,7 +279,7 @@ public class InvestorRecipes {
 	private static Investor getInvestorById(UUID investorId) {
 		try {
 			log.info("Get investor by id: {}", investorId);
-			return investorApi.primaryV1InvestorIdGet(investorId);
+			return investorApi.getInvestorById(investorId);
 		} catch (ApiException e) {
 			throw new RuntimeException(e);
 		}
