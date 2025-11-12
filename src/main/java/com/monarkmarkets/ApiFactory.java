@@ -12,8 +12,8 @@ import com.monarkmarkets.primary.client.api.PreIpoCompanySpvApi;
 import com.monarkmarkets.primary.client.api.QuestionnaireAnswerApi;
 import com.monarkmarkets.primary.client.api.QuestionnaireApi;
 import com.monarkmarkets.primary.client.api.RegisteredFundApi;
-import com.monarkmarkets.primary.client.api.RegisteredFundSubscriptionActionApi;
-import com.monarkmarkets.primary.client.api.RegisteredFundSubscriptionApi;
+import com.monarkmarkets.primary.client.api.TransactionActionApi;
+import com.monarkmarkets.primary.client.api.TransactionApi;
 import com.monarkmarkets.primary.client.api.VersionApi;
 import com.monarkmarkets.primary.client.invoker.ApiClient;
 import com.monarkmarkets.primary.client.invoker.Configuration;
@@ -36,8 +36,8 @@ public class ApiFactory {
 	private static DocumentApi documentApi;
 	private static FinancialAdvisorApi financialAdvisorApi;
 	private static RegisteredFundApi registeredFundApi;
-	private static RegisteredFundSubscriptionApi registeredFundSubscriptionApi;
-	private static RegisteredFundSubscriptionActionApi registeredFundSubscriptionActionApi;
+	private static TransactionApi transactionApi;
+	private static TransactionActionApi transactionActionApi;
 	private static FinancialInstitutionApi financialInstitutionApi;
 	private static VersionApi versionApi;
 
@@ -141,19 +141,19 @@ public class ApiFactory {
 	}
 
 	@Synchronized
-	public static RegisteredFundSubscriptionApi getRegisteredFundSubscriptionApi() {
-		if (registeredFundSubscriptionApi == null) {
-			registeredFundSubscriptionApi = new RegisteredFundSubscriptionApi(apiClient);
+	public static TransactionApi getTransactionApi() {
+		if (transactionApi == null) {
+			transactionApi = new TransactionApi(apiClient);
 		}
-		return registeredFundSubscriptionApi;
+		return transactionApi;
 	}
 
 	@Synchronized
-	public static RegisteredFundSubscriptionActionApi getRegisteredFundSubscriptionActionApi() {
-		if (registeredFundSubscriptionActionApi == null) {
-			registeredFundSubscriptionActionApi = new RegisteredFundSubscriptionActionApi(apiClient);
+	public static TransactionActionApi getTransactionActionApi() {
+		if (transactionActionApi == null) {
+			transactionActionApi = new TransactionActionApi(apiClient);
 		}
-		return registeredFundSubscriptionActionApi;
+		return transactionActionApi;
 	}
 
 	@Synchronized
