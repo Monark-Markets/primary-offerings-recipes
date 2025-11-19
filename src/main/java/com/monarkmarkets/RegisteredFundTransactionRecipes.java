@@ -86,15 +86,7 @@ public class RegisteredFundTransactionRecipes {
 				.filter(action -> action.getType() == TransactionAction.TypeEnum.DOCUMENT_SIGN)
 				.toList();
 		requireSigningActions.forEach(action -> {
-			// Get the document by id
-			Document document = getDocument(UUID.fromString(action.getDataId()));
-			log.info("Document: {}", document);
-
-			// Sign the document
-			signDocument(UUID.fromString(action.getDataId()), SignDocument.builder()
-					.investorId(investorId)
-					.metadata("Registered Fund subscription signature " + UUID.randomUUID())
-					.build());
+			completeTransactionAction(action.getId());
 		});
 
 		// Step 9: Fetch final transaction to verify completion
@@ -205,15 +197,4 @@ public class RegisteredFundTransactionRecipes {
 			throw new RuntimeException(e);
 		}
 	}
-
-	// TODO: Uncomment when PDF preview generation is confirmed for Transaction API
-//	private static File createSubscriptionPreviewPdf(UUID transactionId) {
-//		try {
-//			log.info("Creating subscription preview PDF for transactionId: {}", transactionId);
-//			// Need to confirm the correct method for Transaction API
-//			return ???.generateTransactionPreview(transactionId, null);
-//		} catch (ApiException e) {
-//			throw new RuntimeException(e);
-//		}
-//	}
 }
