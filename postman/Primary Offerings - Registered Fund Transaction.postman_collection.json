@@ -1,0 +1,1447 @@
+{
+	"info": {
+		"_postman_id": "registered-fund-transaction-recipe",
+		"name": "Primary Offerings - Registered Fund Transaction",
+		"description": "Complete flow for creating a Registered Fund subscription using the Transaction API (V2).\n\nThis collection implements the following workflow:\n1. Investor Onboarding\n2. Select Registered Fund by symbol\n3. Create Subscription Transaction\n4. Complete Investor Transaction Actions\n5. Complete Advisor Transaction Actions\n6. Fetch Signed Documents\n\n**Important Notes:**\n- All transaction actions (DocumentAcknowledge, TextAcknowledge, DocumentSign) are completed via the /transaction-action/{id}/complete endpoint\n- The system automatically signs documents when all pending actions for a responsible party are completed\n\n**Setup:**\n1. Import the environment file: Primary Offerings - Registered Fund Transaction.postman_environment.json\n2. Set `baseUrl` and `apiKey` in the environment\n3. Run manually (click Send on each request) OR use Collection Runner (Ctrl/Cmd+R)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{apiKey}}",
+				"type": "string"
+			}
+		]
+	},
+	"item": [
+		{
+			"name": "1. Investor Onboarding",
+			"item": [
+				{
+					"name": "1.1 Get All Financial Institutions",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"if (response && response.items && response.items.length > 0) {",
+									"    // Find default financial institution",
+									"    const defaultFI = response.items.find(fi => fi.isDefault === true);",
+									"    ",
+									"    if (defaultFI) {",
+									"        pm.collectionVariables.set('financialInstitutionId', defaultFI.id);",
+									"        console.log('Financial Institution ID:', defaultFI.id);",
+									"    } else {",
+									"        console.error('No default financial institution found');",
+									"    }",
+									"} else {",
+									"    console.error('No financial institutions returned');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/primary/v1/financial-institution?page=1&pageSize=100",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v1", "financial-institution"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "100"
+								}
+							]
+						},
+						"description": "Fetch all financial institutions and select the one."
+					},
+					"response": []
+				},
+				{
+					"name": "1.2 Create Investor",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.collectionVariables.get('financialInstitutionId')) {",
+									"    throw new Error('financialInstitutionId is required. Run \"Get All Financial Institutions\" first.');",
+									"}",
+									"",
+									"// Generate random investor reference ID",
+									"const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';",
+									"let randomStr = '';",
+									"for (let i = 0; i < 20; i++) {",
+									"    randomStr += chars.charAt(Math.floor(Math.random() * chars.length));",
+									"}",
+									"pm.collectionVariables.set('investorReferenceId', 'Investor-' + randomStr);"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 201', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"if (response && response.id) {",
+									"    pm.collectionVariables.set('investorId', response.id);",
+									"    console.log('Investor ID:', response.id);",
+									"} else {",
+									"    console.error('No investor ID in response');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"investorReferenceId\": \"{{investorReferenceId}}\",\n\t\"financialInstitutionId\": \"{{financialInstitutionId}}\",\n\t\"type\": \"IndividualInvestor\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary/v1/investor",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v1", "investor"]
+						},
+						"description": "Create a new investor with Pending status."
+					},
+					"response": []
+				},
+				{
+					"name": "1.3 Get All Questionnaires",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"if (response && response.items && response.items.length > 0) {",
+									"    pm.collectionVariables.set('questionnaires', JSON.stringify(response.items));",
+									"    console.log('Questionnaires count:', response.items.length);",
+									"} else {",
+									"    console.log('No questionnaires found');",
+									"    pm.collectionVariables.set('questionnaires', JSON.stringify([]));",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/primary/v1/questionnaire",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v1", "questionnaire"]
+						},
+						"description": "Fetch all available questionnaires."
+					},
+					"response": []
+				},
+				{
+					"name": "1.4 Answer Questionnaires",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.collectionVariables.get('investorId')) {",
+									"    throw new Error('investorId is required. Run \"Create Investor\" first.');",
+									"}",
+									"",
+									"if (!pm.collectionVariables.get('questionnaires')) {",
+									"    throw new Error('questionnaires are required. Run \"Get All Questionnaires\" first.');",
+									"}",
+									"",
+									"// Note: This is a sample request. You'll need to run this for each questionnaire.",
+									"// In automation, you'd loop through questionnaires and answer each one.",
+									"const questionnaires = JSON.parse(pm.collectionVariables.get('questionnaires'));",
+									"",
+									"if (questionnaires.length === 0) {",
+									"    console.log('No questionnaires to answer');",
+									"    return;",
+									"}",
+									"",
+									"// Take the first questionnaire as an example",
+									"const questionnaire = questionnaires[0];",
+									"pm.collectionVariables.set('currentQuestionnaireId', questionnaire.id);",
+									"",
+									"// Generate random answers for questions",
+									"const answers = [];",
+									"if (questionnaire.questions) {",
+									"    questionnaire.questions.forEach(q => {",
+									"        let value;",
+									"        if (q.options && q.options.length > 0) {",
+									"            value = q.options[Math.floor(Math.random() * q.options.length)];",
+									"        } else {",
+									"            switch (q.format) {",
+									"                case 'INTEGER':",
+									"                    value = String(Math.floor(Math.random() * 20));",
+									"                    break;",
+									"                case 'BOOLEAN':",
+									"                    value = String(Math.random() > 0.5);",
+									"                    break;",
+									"                default:",
+									"                    value = String(Math.floor(Math.random() * 2));",
+									"            }",
+									"        }",
+									"        answers.push({",
+									"            questionnaireQuestionId: q.id,",
+									"            value: value",
+									"        });",
+									"    });",
+									"}",
+									"",
+									"pm.collectionVariables.set('questionnaireAnswers', JSON.stringify(answers));"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 201', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"",
+									"console.log('Questionnaire answered successfully');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"questionnaireId\": \"{{currentQuestionnaireId}}\",\n\t\"investorId\": \"{{investorId}}\",\n\t\"createQuestionAnswers\": {{questionnaireAnswers}}\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary/v1/questionnaire-answer",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v1", "questionnaire-answer"]
+						},
+						"description": "Submit answers to questionnaire questions. Note: Run this for each questionnaire if multiple exist."
+					},
+					"response": []
+				},
+				{
+					"name": "1.5 Update Investor Accreditation",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.collectionVariables.get('investorId')) {",
+									"    throw new Error('investorId is required. Run \"Create Investor\" first.');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 204', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});",
+									"",
+									"console.log('Accreditation status updated');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"investorId\": \"{{investorId}}\",\n\t\"accreditationStatus\": \"KNOWLEDGEABLE_EMPLOYEE\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary/v1/investor/accreditation",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v1", "investor", "accreditation"]
+						},
+						"description": "Update investor accreditation status."
+					},
+					"response": []
+				},
+				{
+					"name": "1.6 Create Financial Advisor",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.collectionVariables.get('financialInstitutionId')) {",
+									"    throw new Error('financialInstitutionId is required.');",
+									"}",
+									"",
+									"// Generate random CRD and IARD numbers",
+									"const randomDigits = (len) => {",
+									"    let str = '';",
+									"    for (let i = 0; i < len; i++) {",
+									"        str += Math.floor(Math.random() * 10);",
+									"    }",
+									"    return str;",
+									"};",
+									"",
+									"pm.collectionVariables.set('crdNumber', randomDigits(8));",
+									"pm.collectionVariables.set('iardNumber', randomDigits(8));"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 201', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"if (response && response.id) {",
+									"    pm.collectionVariables.set('financialAdvisorId', response.id);",
+									"    console.log('Financial Advisor ID:', response.id);",
+									"} else {",
+									"    console.error('No financial advisor ID in response');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"financialInstitutionId\": \"{{financialInstitutionId}}\",\n\t\"crdNumber\": \"{{crdNumber}}\",\n\t\"iardNumber\": \"{{iardNumber}}\",\n\t\"firstName\": \"Jane\",\n\t\"lastName\": \"Advisor\",\n\t\"mailingAddress\": \"123 Main St\",\n\t\"mailingCity\": \"New York\",\n\t\"mailingState\": \"NY\",\n\t\"mailingZipCode\": \"10001\",\n\t\"mailingCountryCode\": \"US\",\n\t\"branchNumber\": \"001\",\n\t\"phoneCountryCode\": \"1\",\n\t\"phoneNumber\": \"1234567890\",\n\t\"phoneExtension\": \"123\",\n\t\"emailAddress\": \"johnadvisor@example.com\",\n\t\"fax\": \"123-456-7890\",\n\t\"prefix\": \"Mrs\",\n\t\"broker\": \"ExampleBroker\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary/v1/financial-advisor",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v1", "financial-advisor"]
+						},
+						"description": "Create a financial advisor for the investor."
+					},
+					"response": []
+				},
+				{
+					"name": "1.7 Update Investor Details",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.collectionVariables.get('investorId')) {",
+									"    throw new Error('investorId is required.');",
+									"}",
+									"if (!pm.collectionVariables.get('investorReferenceId')) {",
+									"    throw new Error('investorReferenceId is required.');",
+									"}",
+									"if (!pm.collectionVariables.get('financialAdvisorId')) {",
+									"    throw new Error('financialAdvisorId is required. Run \"Create Financial Advisor\" first.');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"console.log('Investor details updated successfully');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"id\": \"{{investorId}}\",\n\t\"investorReferenceId\": \"{{investorReferenceId}}\",\n\t\"financialAdvisorId\": \"{{financialAdvisorId}}\",\n\t\"individualInvestor\": {\n\t\t\"firstName\": \"John\",\n\t\t\"lastName\": \"Doe\",\n\t\t\"email\": \"john.doe@example.com\",\n\t\t\"exemptPayeeCode\": \"1\",\n\t\t\"street1\": \"123 Main St\",\n\t\t\"city\": \"Metropolis\",\n\t\t\"state\": \"NY\",\n\t\t\"zipCode\": \"10001\",\n\t\t\"countryCode\": \"US\",\n\t\t\"phoneCountryCode\": \"1\",\n\t\t\"phoneNumber\": \"5551234567\",\n\t\t\"mailingStreet1\": \"123 Main St\",\n\t\t\"mailingAddressCity\": \"Metropolis\",\n\t\t\"mailingAddressState\": \"NY\",\n\t\t\"mailingAddressZipCode\": \"10001\",\n\t\t\"mailingAddressCountry\": \"US\",\n\t\t\"citizenship\": \"US\",\n\t\t\"dateOfBirth\": \"1980-01-01\",\n\t\t\"taxId\": \"792-61-0047\",\n\t\t\"passportNumber\": \"X1234567\",\n\t\t\"isSubscriptionAdvisorOrERA\": true,\n\t\t\"isUSBased\": true,\n\t\t\"qualifiedStatus\": \"QUALIFIED_CLIENT\"\n\t}\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary/v1/investor",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v1", "investor"]
+						},
+						"description": "Update investor with full details including financial advisor association."
+					},
+					"response": []
+				},
+				{
+					"name": "1.8 Get Investor By ID",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.collectionVariables.get('investorId')) {",
+									"    throw new Error('investorId is required. Run \"Create Investor\" first.');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"console.log('Investor status:', response.status);",
+									"console.log('Investor onboarding complete!');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/primary/v1/investor/{{investorId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v1", "investor", "{{investorId}}"]
+						},
+						"description": "Verify investor details and status after onboarding."
+					},
+					"response": []
+				}
+			],
+			"description": "Complete investor onboarding workflow",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [""]
+					}
+				}
+			]
+		},
+		{
+			"name": "2. Select Registered Fund",
+			"item": [
+				{
+					"name": "2.1 Get All Registered Funds",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"const targetSymbol = pm.collectionVariables.get('registeredFundSymbol');",
+									"",
+									"if (response && response.items && response.items.length > 0) {",
+									"    const selectedFund = response.items.find(rf => rf.symbol === targetSymbol);",
+									"    ",
+									"    if (selectedFund) {",
+									"        pm.collectionVariables.set('registeredFundId', selectedFund.id);",
+									"        pm.collectionVariables.set('registeredFundName', selectedFund.name);",
+									"        console.log('Selected Registered Fund:', selectedFund.symbol, '-', selectedFund.name);",
+									"        console.log('Registered Fund ID:', selectedFund.id);",
+									"    } else {",
+									"        console.error('No registered fund found with symbol:', targetSymbol);",
+									"    }",
+									"} else {",
+									"    console.error('No registered funds returned');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/primary/v1/registered-fund?page=1&pageSize=100",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v1", "registered-fund"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "100"
+								}
+							]
+						},
+						"description": "Fetch all registered funds and select one by symbol (configurable via registeredFundSymbol environment variable)."
+					},
+					"response": []
+				}
+			],
+			"description": "Select a registered fund by symbol"
+		},
+		{
+			"name": "3. Create Registered Fund Subscription",
+			"item": [
+				{
+					"name": "3.1 Create Transaction",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.collectionVariables.get('investorId')) {",
+									"    throw new Error('investorId is required. Complete investor onboarding first.');",
+									"}",
+									"if (!pm.collectionVariables.get('registeredFundId')) {",
+									"    throw new Error('registeredFundId is required. Run \"Get All Registered Funds\" first.');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 201', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"if (response && response.id) {",
+									"    pm.collectionVariables.set('transactionId', response.id);",
+									"    console.log('Transaction ID:', response.id);",
+									"    console.log('Transaction Status:', response.status);",
+									"} else {",
+									"    console.error('No transaction ID in response');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"targetAssetType\": \"RegisteredFund\",\n\t\"targetId\": \"{{registeredFundId}}\",\n\t\"side\": \"Subscription\",\n\t\"investorId\": \"{{investorId}}\",\n\t\"amountReservedDollars\": {{subscriptionAmount}}\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary/v2/transaction",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v2", "transaction"]
+						},
+						"description": "Create a registered fund subscription transaction."
+					},
+					"response": []
+				},
+				{
+					"name": "3.2 Get All Transaction Actions",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.collectionVariables.get('transactionId')) {",
+									"    throw new Error('transactionId is required. Run \"Create Transaction\" first.');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"if (response && Array.isArray(response)) {",
+									"    pm.collectionVariables.set('allTransactionActions', JSON.stringify(response));",
+									"    ",
+									"    // Separate investor and advisor actions",
+									"    const investorActions = response.filter(action => action.responsibleParty === 'Investor');",
+									"    const advisorActions = response.filter(action => action.responsibleParty === 'Advisor');",
+									"    ",
+									"    pm.collectionVariables.set('investorTransactionActions', JSON.stringify(investorActions));",
+									"    pm.collectionVariables.set('advisorTransactionActions', JSON.stringify(advisorActions));",
+									"    ",
+									"    console.log('Total Transaction Actions:', response.length);",
+									"    console.log('Investor Actions:', investorActions.length);",
+									"    console.log('Advisor Actions:', advisorActions.length);",
+									"    ",
+									"    // Log action types",
+									"    investorActions.forEach(action => {",
+									"        console.log(`  [Investor] ${action.type} (${action.status})`);",
+									"    });",
+									"    advisorActions.forEach(action => {",
+									"        console.log(`  [Advisor] ${action.type} (${action.status})`);",
+									"    });",
+									"} else {",
+									"    console.error('Invalid response format');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/primary/v2/transaction-action/transaction/{{transactionId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v2", "transaction-action", "transaction", "{{transactionId}}"]
+						},
+						"description": "Fetch all transaction actions for the created transaction and separate them by responsible party."
+					},
+					"response": []
+				}
+			],
+			"description": "Create subscription transaction and retrieve transaction actions"
+		},
+		{
+			"name": "4. Complete Investor Transaction Actions",
+			"item": [
+				{
+					"name": "4.1 Complete Investor DocumentAcknowledge Actions",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const investorActionsStr = pm.collectionVariables.get('investorTransactionActions');",
+									"if (!investorActionsStr) {",
+									"    throw new Error('investorTransactionActions not found. Run \"Get All Transaction Actions\" first.');",
+									"}",
+									"",
+									"const investorActions = JSON.parse(investorActionsStr);",
+									"const docAckActions = investorActions.filter(action => action.type === 'DocumentAcknowledge');",
+									"",
+									"if (docAckActions.length === 0) {",
+									"    console.log('Skipping: No DocumentAcknowledge actions for investor');",
+									"    pm.execution.skipRequest();",
+									"} else {",
+									"    // Store ALL action IDs for processing",
+									"    const actionIds = docAckActions.map(a => a.id);",
+									"    pm.collectionVariables.set('currentActionIds', JSON.stringify(actionIds));",
+									"    pm.collectionVariables.set('currentActionId', actionIds[0]);",
+									"    console.log(`Processing ${actionIds.length} DocumentAcknowledge action(s) for investor`);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// First action completed",
+									"pm.test('Status code is 200 or 204', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});",
+									"",
+									"const actionIdsStr = pm.collectionVariables.get('currentActionIds');",
+									"if (actionIdsStr) {",
+									"    const actionIds = JSON.parse(actionIdsStr);",
+									"    console.log(`Completed DocumentAcknowledge action 1 of ${actionIds.length}`);",
+									"    ",
+									"    // Complete remaining actions",
+									"    for (let i = 1; i < actionIds.length; i++) {",
+									"        const actionId = actionIds[i];",
+									"        pm.sendRequest({",
+									"            url: pm.environment.get('baseUrl') + '/primary/v2/transaction-action/' + actionId + '/complete',",
+									"            method: 'PUT',",
+									"            header: {",
+									"                'Authorization': 'Bearer ' + pm.environment.get('apiKey'),",
+									"                'Content-Type': 'application/json'",
+									"            },",
+									"            body: {",
+									"                mode: 'raw',",
+									"                raw: '{}'",
+									"            }",
+									"        }, function (err, response) {",
+									"            if (err) {",
+									"                console.error(`Error completing action ${i + 1}: ${err}`);",
+									"            } else if (response.code === 200 || response.code === 204) {",
+									"                console.log(`Completed DocumentAcknowledge action ${i + 1} of ${actionIds.length}`);",
+									"            } else {",
+									"                console.error(`Failed to complete action ${i + 1}: ${response.code}`);",
+									"            }",
+									"        });",
+									"    }",
+									"    ",
+									"    // Clean up",
+									"    pm.collectionVariables.unset('currentActionIds');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary/v2/transaction-action/{{currentActionId}}/complete",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v2", "transaction-action", "{{currentActionId}}", "complete"]
+						},
+						"description": "Complete ALL DocumentAcknowledge transaction actions for the investor. Automatically processes all actions in a single request."
+					},
+					"response": []
+				},
+				{
+					"name": "4.2 Complete Investor TextAcknowledge Actions",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const investorActionsStr = pm.collectionVariables.get('investorTransactionActions');",
+									"if (!investorActionsStr) {",
+									"    throw new Error('investorTransactionActions not found. Run \"Get All Transaction Actions\" first.');",
+									"}",
+									"",
+									"const investorActions = JSON.parse(investorActionsStr);",
+									"const textAckActions = investorActions.filter(action => action.type === 'TextAcknowledge');",
+									"",
+									"if (textAckActions.length === 0) {",
+									"    console.log('Skipping: No TextAcknowledge actions for investor');",
+									"    pm.execution.skipRequest();",
+									"} else {",
+									"    // Store ALL action IDs for processing",
+									"    const actionIds = textAckActions.map(a => a.id);",
+									"    pm.collectionVariables.set('currentActionIds', JSON.stringify(actionIds));",
+									"    pm.collectionVariables.set('currentActionId', actionIds[0]);",
+									"    console.log(`Processing ${actionIds.length} TextAcknowledge action(s) for investor`);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// First action completed",
+									"pm.test('Status code is 200 or 204', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});",
+									"",
+									"const actionIdsStr = pm.collectionVariables.get('currentActionIds');",
+									"if (actionIdsStr) {",
+									"    const actionIds = JSON.parse(actionIdsStr);",
+									"    console.log(`Completed TextAcknowledge action 1 of ${actionIds.length}`);",
+									"    ",
+									"    // Complete remaining actions",
+									"    for (let i = 1; i < actionIds.length; i++) {",
+									"        const actionId = actionIds[i];",
+									"        pm.sendRequest({",
+									"            url: pm.environment.get('baseUrl') + '/primary/v2/transaction-action/' + actionId + '/complete',",
+									"            method: 'PUT',",
+									"            header: {",
+									"                'Authorization': 'Bearer ' + pm.environment.get('apiKey'),",
+									"                'Content-Type': 'application/json'",
+									"            },",
+									"            body: {",
+									"                mode: 'raw',",
+									"                raw: '{}'",
+									"            }",
+									"        }, function (err, response) {",
+									"            if (err) {",
+									"                console.error(`Error completing action ${i + 1}: ${err}`);",
+									"            } else if (response.code === 200 || response.code === 204) {",
+									"                console.log(`Completed TextAcknowledge action ${i + 1} of ${actionIds.length}`);",
+									"            } else {",
+									"                console.error(`Failed to complete action ${i + 1}: ${response.code}`);",
+									"            }",
+									"        });",
+									"    }",
+									"    ",
+									"    // Clean up",
+									"    pm.collectionVariables.unset('currentActionIds');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary/v2/transaction-action/{{currentActionId}}/complete",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v2", "transaction-action", "{{currentActionId}}", "complete"]
+						},
+						"description": "Complete ALL TextAcknowledge transaction actions for the investor. Automatically processes all actions in a single request."
+					},
+					"response": []
+				},
+				{
+					"name": "4.3 Complete Investor DocumentSign Actions",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const investorActionsStr = pm.collectionVariables.get('investorTransactionActions');",
+									"if (!investorActionsStr) {",
+									"    throw new Error('investorTransactionActions not found. Run \"Get All Transaction Actions\" first.');",
+									"}",
+									"",
+									"const investorActions = JSON.parse(investorActionsStr);",
+									"const docSignActions = investorActions.filter(action => action.type === 'DocumentSign');",
+									"",
+									"if (docSignActions.length === 0) {",
+									"    console.log('Skipping: No DocumentSign actions for investor');",
+									"    pm.execution.skipRequest();",
+									"} else {",
+									"    // Store ALL action IDs and document IDs for processing",
+									"    const actionIds = docSignActions.map(a => a.id);",
+									"    const documentIds = docSignActions.map(a => a.dataId);",
+									"    pm.collectionVariables.set('currentActionIds', JSON.stringify(actionIds));",
+									"    pm.collectionVariables.set('currentActionId', actionIds[0]);",
+									"    pm.collectionVariables.set('currentDocumentIds', JSON.stringify(documentIds));",
+									"    pm.collectionVariables.set('currentDocumentId', documentIds[0]);",
+									"    console.log(`Processing ${actionIds.length} DocumentSign action(s) for investor`);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// First action completed",
+									"pm.test('Status code is 200 or 204', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});",
+									"",
+									"const actionIdsStr = pm.collectionVariables.get('currentActionIds');",
+									"const documentIdsStr = pm.collectionVariables.get('currentDocumentIds');",
+									"",
+									"if (actionIdsStr && documentIdsStr) {",
+									"    const actionIds = JSON.parse(actionIdsStr);",
+									"    const documentIds = JSON.parse(documentIdsStr);",
+									"    console.log(`Completed DocumentSign action 1 of ${actionIds.length} (investor)`);",
+									"    ",
+									"    // Track document IDs for later retrieval",
+									"    pm.collectionVariables.set('investorSignedDocumentIds', JSON.stringify(documentIds));",
+									"    ",
+									"    // Complete remaining actions",
+									"    for (let i = 1; i < actionIds.length; i++) {",
+									"        const actionId = actionIds[i];",
+									"        pm.sendRequest({",
+									"            url: pm.environment.get('baseUrl') + '/primary/v2/transaction-action/' + actionId + '/complete',",
+									"            method: 'PUT',",
+									"            header: {",
+									"                'Authorization': 'Bearer ' + pm.environment.get('apiKey'),",
+									"                'Content-Type': 'application/json'",
+									"            },",
+									"            body: {",
+									"                mode: 'raw',",
+									"                raw: '{}'",
+									"            }",
+									"        }, function (err, response) {",
+									"            if (err) {",
+									"                console.error(`Error completing action ${i + 1}: ${err}`);",
+									"            } else if (response.code === 200 || response.code === 204) {",
+									"                console.log(`Completed DocumentSign action ${i + 1} of ${actionIds.length} (investor)`);",
+									"            } else {",
+									"                console.error(`Failed to complete action ${i + 1}: ${response.code}`);",
+									"            }",
+									"        });",
+									"    }",
+									"    ",
+									"    // Clean up",
+									"    pm.collectionVariables.unset('currentActionIds');",
+									"    pm.collectionVariables.unset('currentDocumentIds');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary/v2/transaction-action/{{currentActionId}}/complete",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v2", "transaction-action", "{{currentActionId}}", "complete"]
+						},
+						"description": "Complete ALL DocumentSign transaction actions for the investor. The system will automatically sign the document when all pending actions for the investor are completed. Automatically processes all actions in a single request."
+					},
+					"response": []
+				}
+			],
+			"description": "Complete all transaction actions where responsibleParty is Investor. All action types (DocumentAcknowledge, TextAcknowledge, DocumentSign) use the same /complete endpoint. Documents are signed automatically when all investor actions are completed."
+		},
+		{
+			"name": "5. Complete Advisor Transaction Actions",
+			"item": [
+				{
+					"name": "5.1 Complete Advisor DocumentAcknowledge Actions",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const advisorActionsStr = pm.collectionVariables.get('advisorTransactionActions');",
+									"if (!advisorActionsStr) {",
+									"    throw new Error('advisorTransactionActions not found. Run \"Get All Transaction Actions\" first.');",
+									"}",
+									"",
+									"const advisorActions = JSON.parse(advisorActionsStr);",
+									"const docAckActions = advisorActions.filter(action => action.type === 'DocumentAcknowledge');",
+									"",
+									"if (docAckActions.length === 0) {",
+									"    console.log('Skipping: No DocumentAcknowledge actions for advisor');",
+									"    pm.execution.skipRequest();",
+									"} else {",
+									"    // Store ALL action IDs for processing",
+									"    const actionIds = docAckActions.map(a => a.id);",
+									"    pm.collectionVariables.set('currentActionIds', JSON.stringify(actionIds));",
+									"    pm.collectionVariables.set('currentActionId', actionIds[0]);",
+									"    console.log(`Processing ${actionIds.length} DocumentAcknowledge action(s) for advisor`);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// First action completed",
+									"pm.test('Status code is 200 or 204', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});",
+									"",
+									"const actionIdsStr = pm.collectionVariables.get('currentActionIds');",
+									"if (actionIdsStr) {",
+									"    const actionIds = JSON.parse(actionIdsStr);",
+									"    console.log(`Completed DocumentAcknowledge action 1 of ${actionIds.length} (advisor)`);",
+									"    ",
+									"    // Complete remaining actions",
+									"    for (let i = 1; i < actionIds.length; i++) {",
+									"        const actionId = actionIds[i];",
+									"        pm.sendRequest({",
+									"            url: pm.environment.get('baseUrl') + '/primary/v2/transaction-action/' + actionId + '/complete',",
+									"            method: 'PUT',",
+									"            header: {",
+									"                'Authorization': 'Bearer ' + pm.environment.get('apiKey'),",
+									"                'Content-Type': 'application/json'",
+									"            },",
+									"            body: {",
+									"                mode: 'raw',",
+									"                raw: '{}'",
+									"            }",
+									"        }, function (err, response) {",
+									"            if (err) {",
+									"                console.error(`Error completing action ${i + 1}: ${err}`);",
+									"            } else if (response.code === 200 || response.code === 204) {",
+									"                console.log(`Completed DocumentAcknowledge action ${i + 1} of ${actionIds.length} (advisor)`);",
+									"            } else {",
+									"                console.error(`Failed to complete action ${i + 1}: ${response.code}`);",
+									"            }",
+									"        });",
+									"    }",
+									"    ",
+									"    // Clean up",
+									"    pm.collectionVariables.unset('currentActionIds');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary/v2/transaction-action/{{currentActionId}}/complete",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v2", "transaction-action", "{{currentActionId}}", "complete"]
+						},
+						"description": "Complete ALL DocumentAcknowledge transaction actions for the advisor. Automatically processes all actions in a single request."
+					},
+					"response": []
+				},
+				{
+					"name": "5.2 Complete Advisor TextAcknowledge Actions",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const advisorActionsStr = pm.collectionVariables.get('advisorTransactionActions');",
+									"if (!advisorActionsStr) {",
+									"    throw new Error('advisorTransactionActions not found. Run \"Get All Transaction Actions\" first.');",
+									"}",
+									"",
+									"const advisorActions = JSON.parse(advisorActionsStr);",
+									"const textAckActions = advisorActions.filter(action => action.type === 'TextAcknowledge');",
+									"",
+									"if (textAckActions.length === 0) {",
+									"    console.log('Skipping: No TextAcknowledge actions for advisor');",
+									"    pm.execution.skipRequest();",
+									"} else {",
+									"    // Store ALL action IDs for processing",
+									"    const actionIds = textAckActions.map(a => a.id);",
+									"    pm.collectionVariables.set('currentActionIds', JSON.stringify(actionIds));",
+									"    pm.collectionVariables.set('currentActionId', actionIds[0]);",
+									"    console.log(`Processing ${actionIds.length} TextAcknowledge action(s) for advisor`);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// First action completed",
+									"pm.test('Status code is 200 or 204', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});",
+									"",
+									"const actionIdsStr = pm.collectionVariables.get('currentActionIds');",
+									"if (actionIdsStr) {",
+									"    const actionIds = JSON.parse(actionIdsStr);",
+									"    console.log(`Completed TextAcknowledge action 1 of ${actionIds.length} (advisor)`);",
+									"    ",
+									"    // Complete remaining actions",
+									"    for (let i = 1; i < actionIds.length; i++) {",
+									"        const actionId = actionIds[i];",
+									"        pm.sendRequest({",
+									"            url: pm.environment.get('baseUrl') + '/primary/v2/transaction-action/' + actionId + '/complete',",
+									"            method: 'PUT',",
+									"            header: {",
+									"                'Authorization': 'Bearer ' + pm.environment.get('apiKey'),",
+									"                'Content-Type': 'application/json'",
+									"            },",
+									"            body: {",
+									"                mode: 'raw',",
+									"                raw: '{}'",
+									"            }",
+									"        }, function (err, response) {",
+									"            if (err) {",
+									"                console.error(`Error completing action ${i + 1}: ${err}`);",
+									"            } else if (response.code === 200 || response.code === 204) {",
+									"                console.log(`Completed TextAcknowledge action ${i + 1} of ${actionIds.length} (advisor)`);",
+									"            } else {",
+									"                console.error(`Failed to complete action ${i + 1}: ${response.code}`);",
+									"            }",
+									"        });",
+									"    }",
+									"    ",
+									"    // Clean up",
+									"    pm.collectionVariables.unset('currentActionIds');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary/v2/transaction-action/{{currentActionId}}/complete",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v2", "transaction-action", "{{currentActionId}}", "complete"]
+						},
+						"description": "Complete ALL TextAcknowledge transaction actions for the advisor. Automatically processes all actions in a single request."
+					},
+					"response": []
+				},
+				{
+					"name": "5.3 Complete Advisor DocumentSign Actions",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const advisorActionsStr = pm.collectionVariables.get('advisorTransactionActions');",
+									"if (!advisorActionsStr) {",
+									"    throw new Error('advisorTransactionActions not found. Run \"Get All Transaction Actions\" first.');",
+									"}",
+									"",
+									"const advisorActions = JSON.parse(advisorActionsStr);",
+									"const docSignActions = advisorActions.filter(action => action.type === 'DocumentSign');",
+									"",
+									"if (docSignActions.length === 0) {",
+									"    console.log('Skipping: No DocumentSign actions for advisor');",
+									"    pm.execution.skipRequest();",
+									"} else {",
+									"    // Store ALL action IDs and document IDs for processing",
+									"    const actionIds = docSignActions.map(a => a.id);",
+									"    const documentIds = docSignActions.map(a => a.dataId);",
+									"    pm.collectionVariables.set('currentActionIds', JSON.stringify(actionIds));",
+									"    pm.collectionVariables.set('currentActionId', actionIds[0]);",
+									"    pm.collectionVariables.set('currentDocumentIds', JSON.stringify(documentIds));",
+									"    pm.collectionVariables.set('currentDocumentId', documentIds[0]);",
+									"    console.log(`Processing ${actionIds.length} DocumentSign action(s) for advisor`);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// First action completed",
+									"pm.test('Status code is 200 or 204', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});",
+									"",
+									"const actionIdsStr = pm.collectionVariables.get('currentActionIds');",
+									"const documentIdsStr = pm.collectionVariables.get('currentDocumentIds');",
+									"",
+									"if (actionIdsStr && documentIdsStr) {",
+									"    const actionIds = JSON.parse(actionIdsStr);",
+									"    const documentIds = JSON.parse(documentIdsStr);",
+									"    console.log(`Completed DocumentSign action 1 of ${actionIds.length} (advisor)`);",
+									"    ",
+									"    // Track document IDs for later retrieval",
+									"    pm.collectionVariables.set('advisorSignedDocumentIds', JSON.stringify(documentIds));",
+									"    ",
+									"    // Complete remaining actions",
+									"    for (let i = 1; i < actionIds.length; i++) {",
+									"        const actionId = actionIds[i];",
+									"        pm.sendRequest({",
+									"            url: pm.environment.get('baseUrl') + '/primary/v2/transaction-action/' + actionId + '/complete',",
+									"            method: 'PUT',",
+									"            header: {",
+									"                'Authorization': 'Bearer ' + pm.environment.get('apiKey'),",
+									"                'Content-Type': 'application/json'",
+									"            },",
+									"            body: {",
+									"                mode: 'raw',",
+									"                raw: '{}'",
+									"            }",
+									"        }, function (err, response) {",
+									"            if (err) {",
+									"                console.error(`Error completing action ${i + 1}: ${err}`);",
+									"            } else if (response.code === 200 || response.code === 204) {",
+									"                console.log(`Completed DocumentSign action ${i + 1} of ${actionIds.length} (advisor)`);",
+									"            } else {",
+									"                console.error(`Failed to complete action ${i + 1}: ${response.code}`);",
+									"            }",
+									"        });",
+									"    }",
+									"    ",
+									"    // Clean up",
+									"    pm.collectionVariables.unset('currentActionIds');",
+									"    pm.collectionVariables.unset('currentDocumentIds');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary/v2/transaction-action/{{currentActionId}}/complete",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v2", "transaction-action", "{{currentActionId}}", "complete"]
+						},
+						"description": "Complete ALL DocumentSign transaction actions for the advisor. The system will automatically sign the document when all pending actions for the advisor are completed. Automatically processes all actions in a single request."
+					},
+					"response": []
+				}
+			],
+			"description": "Complete all transaction actions where responsibleParty is Advisor. All action types (DocumentAcknowledge, TextAcknowledge, DocumentSign) use the same /complete endpoint. Documents are signed automatically when all advisor actions are completed."
+		},
+		{
+			"name": "6. Fetch Signed Documents",
+			"item": [
+				{
+					"name": "6.1 Get Final Transaction Status",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.collectionVariables.get('transactionId')) {",
+									"    throw new Error('transactionId is required.');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"console.log('='.repeat(50));",
+									"console.log('FINAL TRANSACTION STATUS');",
+									"console.log('='.repeat(50));",
+									"console.log('Transaction ID:', response.id);",
+									"console.log('Status:', response.status);",
+									"console.log('Amount:', response.amountReservedDollars);",
+									"console.log('Target:', response.targetAssetType);",
+									"console.log('='.repeat(50));",
+									"console.log('Registered Fund Subscription Complete!');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/primary/v2/transaction/{{transactionId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v2", "transaction", "{{transactionId}}"]
+						},
+						"description": "Verify final transaction status after completing all transaction actions."
+					},
+					"response": []
+				}
+			],
+			"description": "Fetch document details after completing all transaction actions to verify that documents were automatically signed by the system.\n\nThe url for the sign document will be returned in the Transaction payload in the next release.\n\nFor now, use the Transaction ID in the registeredFundSubscriptionId query param of the GetAll Document endpoint."
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Auto-clear collection variables when starting a Collection Runner run",
+					"// This prevents stale data from previous runs while allowing manual execution",
+					"",
+					"// Only run at the VERY FIRST request (1.1 Get All Financial Institutions)",
+					"const isCollectionRunner = pm.info.eventName === 'prerequest' && pm.info.iteration !== undefined;",
+					"const isFirstRequest = pm.info.requestName === '1.1 Get All Financial Institutions';",
+					"const notYetInitialized = !pm.collectionVariables.get('_runInitialized');",
+					"",
+					"console.log(pm.environment)",
+					"",
+					"if (isCollectionRunner && isFirstRequest && notYetInitialized) {",
+					"    console.log('='.repeat(60));",
+					"    console.log('Collection Runner detected - Clearing all variables');",
+					"    console.log('='.repeat(60));",
+					"    ",
+					"    // Clear all collection variables used in this workflow",
+					"    const variablesToClear = [",
+					"        'financialInstitutionId',",
+					"        'investorId',",
+					"        'investorReferenceId',",
+					"        'questionnaires',",
+					"        'currentQuestionnaireId',",
+					"        'questionnaireAnswers',",
+					"        'crdNumber',",
+					"        'iardNumber',",
+					"        'financialAdvisorId',",
+					"        'registeredFundId',",
+					"        'registeredFundName',",
+					"        'transactionId',",
+					"        'allTransactionActions',",
+					"        'investorTransactionActions',",
+					"        'advisorTransactionActions',",
+					"        'currentActionId',",
+					"        'currentActionIds',",
+					"        'currentDocumentId',",
+					"        'currentDocumentIds',",
+					"        'investorSignedDocumentIds',",
+					"        'advisorSignedDocumentIds'",
+					"    ];",
+					"    ",
+					"    variablesToClear.forEach(varName => {",
+					"        pm.collectionVariables.unset(varName);",
+					"    });",
+					"    ",
+					"    // Mark that we've initialized this run",
+					"    pm.collectionVariables.set('_runInitialized', 'true');",
+					"    ",
+					"    console.log('Variables cleared - Starting fresh run');",
+					"    console.log('='.repeat(60));",
+					"}"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Clear the run initialization flag at the end of the collection",
+					"// This ensures the next Collection Runner run will clear variables again",
+					"const isCollectionRunner = pm.info.eventName === 'test' && pm.info.iteration !== undefined;",
+					"const isLastRequest = pm.info.requestName === '6.1 Get Final Transaction Status';",
+					"",
+					"if (isCollectionRunner && isLastRequest) {",
+					"    pm.collectionVariables.unset('_runInitialized');",
+					"    console.log('Collection run complete - Ready for next run');",
+					"}"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "registeredFundSymbol",
+			"value": "BCRED",
+			"type": "string"
+		},
+		{
+			"key": "subscriptionAmount",
+			"value": "10000.00",
+			"type": "string"
+		}
+	]
+}
