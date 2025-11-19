@@ -1440,7 +1440,7 @@
 							"raw": "{{firstDocumentDownloadUrl}}",
 							"host": ["{{firstDocumentDownloadUrl}}"]
 						},
-						"description": "Download the signed document. This endpoint returns a 302 redirect to an S3 presigned URL where the actual PDF can be downloaded. The presigned URL is valid for 15 minutes."
+						"description": "Download the first signed document. This endpoint returns a 302 redirect to an S3 presigned URL where the actual PDF can be downloaded. The presigned URL is valid for 15 minutes.\n\nNote: If multiple documents exist, only the first one is downloaded. If you need to download additional documents, manually run this request again after updating the 'firstDocumentDownloadUrl' variable with another document's URL from the previous step.\n\nImportant: Postman does not store documents larger than 300KB in the response body."
 					},
 					"response": []
 				},
