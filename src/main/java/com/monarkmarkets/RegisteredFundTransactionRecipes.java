@@ -114,8 +114,6 @@ public class RegisteredFundTransactionRecipes {
 						currentPage,
 						pageSize,
 						null,
-						null,
-						null,
 						null
 				);
 
