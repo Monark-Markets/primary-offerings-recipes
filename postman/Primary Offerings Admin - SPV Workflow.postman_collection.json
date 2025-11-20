@@ -1,0 +1,415 @@
+{
+	"info": {
+		"_postman_id": "primary-admin-spv-workflow-2024",
+		"name": "Primary Offerings Admin - SPV Workflow",
+		"description": "# Primary SPV Offering Workflow\n\nThis collection contains workflow for setting up SPVs in the Primary Offering platform.\n\n## Workflow 1: Setting up an SPV\n- Find PreIPOCompany (SpaceX)\n- Create PreIPOCompanyInvestment\n- Create PreIPOCompanySPV\n- Grant permissions to Financial Institutions\n\n## Prerequisites\n- Valid API key with admin permissions\n- Base URL configured for the Primary Admin API\n\n## Variables\n- `baseUrl`: Base URL for the Primary Admin API\n- `apiKey`: Your API key for authentication",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "apikey",
+		"apikey": [
+			{
+				"key": "value",
+				"value": "{{apiKey}}",
+				"type": "string"
+			},
+			{
+				"key": "key",
+				"value": "Authorization",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"exec": [
+					"// Add Cloudflare Access headers if configured (for staging/demo environments)",
+					"const cfClientId = pm.variables.get('cfAccessClientId');",
+					"const cfClientSecret = pm.variables.get('cfAccessClientSecret');",
+					"",
+					"if (cfClientId && cfClientSecret && cfClientId !== 'YOUR_CF_CLIENT_ID' && cfClientSecret !== 'YOUR_CF_CLIENT_SECRET') {",
+					"    pm.request.headers.add({",
+					"        key: 'CF-Access-Client-Id',",
+					"        value: cfClientId",
+					"    });",
+					"    pm.request.headers.add({",
+					"        key: 'CF-Access-Client-Secret',",
+					"        value: cfClientSecret",
+					"    });",
+					"}"
+				],
+				"type": "text/javascript"
+			}
+		}
+	],
+	"item": [
+		{
+			"name": "Workflow 1: Setting up an SPV",
+			"description": "Complete workflow for creating a new SPV investment in SpaceX, including:\n1. Finding the PreIPOCompany ID for SpaceX\n2. Creating a PreIPOCompanyInvestment\n3. Creating a PreIPOCompanySPV\n4. Granting permissions to Financial Institutions",
+			"item": [
+				{
+					"name": "Step 1: Find SpaceX PreIPOCompany",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"SpaceX company found and ID saved\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('items');",
+									"    ",
+									"    var spaceX = jsonData.items.find(company => company.name === 'SpaceX');",
+									"    pm.expect(spaceX, 'SpaceX not found in the results').to.not.be.undefined;",
+									"    ",
+									"    pm.variables.set('preIPOCompanyId', spaceX.id);",
+									"    console.log('SpaceX ID:', spaceX.id);",
+									"    console.log('SpaceX Name:', spaceX.name);",
+									"});",
+									"",
+									"pm.test(\"Environment variable set\", function () {",
+									"    pm.expect(pm.variables.get('preIPOCompanyId')).to.not.be.undefined;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/primary-internal/v1/pre-ipo-company?pageSize=100",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"primary-internal",
+								"v1",
+								"pre-ipo-company"
+							],
+							"query": [
+								{
+									"key": "pageSize",
+									"value": "100"
+								}
+							]
+						},
+						"description": "Retrieves all PreIPOCompanies to find SpaceX and save its ID for subsequent requests."
+					},
+					"response": []
+				},
+				{
+					"name": "Step 2: Create PreIPOCompanyInvestment",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"PreIPOCompanyInvestment created successfully\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('id');",
+									"    pm.expect(jsonData.shareType).to.equal('Preferred');",
+									"    pm.expect(jsonData.shareClass).to.equal('Series N');",
+									"    pm.expect(jsonData.transactionType).to.equal('Secondary');",
+									"    ",
+									"    pm.variables.set('preIPOCompanyInvestmentId', jsonData.id);",
+									"    console.log('Created PreIPOCompanyInvestment ID:', jsonData.id);",
+									"});",
+									"",
+									"pm.test(\"Investment amounts are correct\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.amountToTarget).to.equal(10000000);",
+									"    pm.expect(jsonData.amountPaidToAcquire).to.equal(10500000);",
+									"    pm.expect(jsonData.numberOfShares).to.equal(40000);",
+									"    pm.expect(jsonData.pricePerShare).to.equal(262.50);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.variables.get('preIPOCompanyId')) {",
+									"    throw new Error('preIPOCompanyId not set. Please run Step 1 first.');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"preIPOCompanyID\": \"{{preIPOCompanyId}}\",\n    \"shareType\": \"Preferred\",\n    \"shareClass\": \"Series N\",\n    \"amountToTarget\": 10000000,\n    \"brokerFee\": 0.05,\n    \"amountPaidToAcquire\": 10500000,\n    \"numberOfShares\": 40000,\n    \"pricePerShare\": 262.50,\n    \"transactionType\": \"Secondary\",\n    \"layeredSPV\": null\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary-internal/v1/pre-ipo-company-investment",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"primary-internal",
+								"v1",
+								"pre-ipo-company-investment"
+							]
+						},
+						"description": "Creates a new PreIPOCompanyInvestment for the SpaceX opportunity.\n\n**Investment Details:**\n- Share Type: Preferred\n- Share Class: Series N\n- Amount to Target: $10,000,000\n- Broker Fee: 5%\n- Amount Paid to Acquire: $10,500,000\n- Number of Shares: 40,000\n- Price Per Share: $262.50\n- Transaction Type: Secondary\n- Enable Layered SPV: FALSE"
+					},
+					"response": []
+				},
+				{
+					"name": "Step 3: Create PreIPOCompanySPV",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"PreIPOCompanySPV created successfully\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('id');",
+									"    pm.expect(jsonData.name).to.equal('Monark Series SpaceX One LLC');",
+									"    pm.expect(jsonData.tradingSymbol).to.equal('ZSPAX.PVT.PRN');",
+									"    ",
+									"    pm.variables.set('preIPOCompanySPVId', jsonData.id);",
+									"    console.log('Created PreIPOCompanySPV ID:', jsonData.id);",
+									"});",
+									"",
+									"pm.test(\"SPV configuration is correct\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.assetType).to.equal('PRIVATE_COMPANY');",
+									"    pm.expect(jsonData.securityType).to.equal('LP_INTERESTS');",
+									"    pm.expect(jsonData.round).to.equal('SECONDARY');",
+									"    pm.expect(jsonData.ownStock).to.equal(false);",
+									"    pm.expect(jsonData.minCommitmentAmount).to.equal(94500);",
+									"});",
+									"",
+									"pm.test(\"SPV pricing is correct\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.investorPricePerShare).to.equal(250);",
+									"    pm.expect(jsonData.investorFeePerShare).to.equal(12.50);",
+									"    pm.expect(jsonData.allInPricePerShare).to.equal(262.50);",
+									"    pm.expect(jsonData.totalDollarAllocation).to.equal(9450000);",
+									"    pm.expect(jsonData.totalNumberOfSeats).to.equal(99);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.variables.get('preIPOCompanyInvestmentId')) {",
+									"    throw new Error('preIPOCompanyInvestmentId not set. Please run Step 2 first.');",
+									"}",
+									"",
+									"// Set goLiveDate to a date before fundingDeadline (2025-03-31)",
+									"// Using 2025-01-01 as a reasonable go-live date",
+									"pm.variables.set('goLiveDate', '2025-01-01');",
+									"console.log('Go Live Date set to: 2025-01-01');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"preIPOCompanyInvestmentId\": \"{{preIPOCompanyInvestmentId}}\",\n    \"name\": \"Monark Series SpaceX One LLC\",\n    \"assetType\": \"PRIVATE_COMPANY\",\n    \"exemptionsClaimed\": [\n        \"RULE_506_b\",\n        \"SECURITIES_ACT_SECTION_3_c_1\"\n    ],\n    \"securityType\": \"LP_INTERESTS\",\n    \"round\": \"SECONDARY\",\n    \"ownStock\": false,\n    \"platformProvider\": \"Monark Markets, Inc\",\n    \"synopsis\": \"Invest in SpaceX, the world's leading private aerospace company, valued at $180B+ with estimated 2024 revenue over $9B. Fueled by rapid Starlink growth and frequent Falcon 9 launches, SpaceX is a pioneer in reusable rockets and satellite internet. It has raised $10B+ from top-tier investors like Fidelity, Founders Fund, Andreessen Horowitz, and Sequoia Capital—signaling strong confidence in its bold vision of Mars colonization and global internet coverage.\",\n    \"description\": \"This investment opportunity offers access to SpaceX, the world's leading private aerospace company, revolutionizing space transport and satellite internet. With a valuation of $180B+ and 2024 revenue estimated at $9B, SpaceX is backed by top-tier investors like Fidelity, a16z, and Alphabet. Its dual focus—Launch Services and Starlink—drives global growth, powered by reusable rockets and millions of Starlink subscribers. Founded by Elon Musk, SpaceX has deep ties to NASA and the DoD, delivering unmatched vertical integration and technological leadership. As space infrastructure demand surges, SpaceX is poised to define the next frontier in aerospace and connectivity.\",\n    \"tradingSymbol\": \"ZSPAX.PVT.PRN\",\n    \"spvCustodian\": null,\n    \"preFundedInventory\": false,\n    \"taxForm\": \"K-1\",\n    \"investorPricePerShare\": 250,\n    \"investorFeePerShare\": 12.50,\n    \"allInPricePerShare\": 262.50,\n    \"totalNumberOfSeats\": 99,\n    \"valuation\": 329810000000,\n    \"discountRate\": 0,\n    \"minCommitmentAmount\": 94500,\n    \"holdbackEnabled\": false,\n    \"fundingDeadline\": \"2025-03-31\",\n    \"totalDollarAllocation\": 9450000,\n    \"managementFee\": 5,\n    \"managementFeeYearsPayable\": null,\n    \"totalManagementFee\": 472500,\n    \"monarkSplit\": 50,\n    \"demandSplit\": 50,\n    \"seriesLLCEIN\": \"1234567\",\n    \"spvAccountID\": 1234567,\n    \"masterLLCName\": \"Monark Markets Access LLC\",\n    \"masterLLCEIN\": \"990461220\",\n    \"proRata\": false,\n    \"informationRights\": false,\n    \"mostFavoredNation\": false,\n    \"notableInvestors\": [\n        \"Fidelity Investments\",\n        \"Founders Fund\",\n        \"Andreesen Horowitz\",\n        \"T. Rowe Price\",\n        \"Valor Equity Partners\"\n    ],\n    \"bankingWithSydecar\": false,\n    \"usingSydecarMasterSeriesLLC\": false,\n    \"aipEnabled\": false,\n    \"goLiveDate\": \"{{goLiveDate}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary-internal/v1/pre-ipo-company-spv",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"primary-internal",
+								"v1",
+								"pre-ipo-company-spv"
+							]
+						},
+						"description": "Creates a new PreIPOCompanySPV for the SpaceX investment.\n\n**SPV Details:**\n- Name: Monark Series SpaceX One LLC\n- Asset Type: Private Company\n- Exemptions: Rule 506(b), Securities Act Section 3(c)(1)\n- Security Type: LP Interests\n- Round: Secondary\n- SPV Owns Stock: FALSE\n- Platform Provider: Monark Markets, Inc\n- Trading Symbol: ZSPAX.PVT.PRN\n- Tax Form: K-1\n- Investor Price Per Share: $250\n- Investor Fee Per Share: $12.50\n- All In Price Per Share: $262.50\n- Total Share Allocation: 50,000 (implied from Total Dollar Allocation / All In Price Per Share)\n- Total Number of Seats: 99\n- Valuation: $329,810,000,000\n- Minimum Commitment Amount: $94,500\n- Funding Deadline: 03/31/2025\n- Total Dollar Allocation: $9,450,000\n- Management Fee: 5%\n- Total Commission: $472,500\n- Monark Fee Split: 50%\n- Partner Commission Split: 50%"
+					},
+					"response": []
+				},
+				{
+					"name": "Step 4: Get Financial Institutions for Partner",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Financial Institutions retrieved\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('items');",
+									"    pm.expect(jsonData.items.length).to.be.greaterThan(0);",
+									"    console.log('Total FIs found:', jsonData.items.length);",
+									"});",
+									"",
+									"pm.test(\"FI IDs saved for SPV permission grant\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    var fiIds = jsonData.items.map(fi => fi.id);",
+									"    pm.variables.set('financialInstitutionIds', JSON.stringify(fiIds));",
+									"    console.log('Financial Institution IDs:', fiIds);",
+									"    ",
+									"    // Also save first FI ID for individual reference",
+									"    if (fiIds.length > 0) {",
+									"        pm.variables.set('firstFinancialInstitutionId', fiIds[0]);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/primary-internal/v1/financial-institution?partnerName=Test Partner LLC&pageSize=100",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"primary-internal",
+								"v1",
+								"financial-institution"
+							],
+							"query": [
+								{
+									"key": "partnerName",
+									"value": "Test Partner LLC"
+								},
+								{
+									"key": "pageSize",
+									"value": "100"
+								}
+							]
+						},
+						"description": "Retrieves all Financial Institutions associated with 'Test Partner LLC' to grant them access to the newly created SPV."
+					},
+					"response": []
+				},
+				{
+					"name": "Step 5: Grant SPV Permissions to Financial Institutions",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Permissions granted successfully\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.equal(true);",
+									"    console.log('SPV permissions granted successfully');",
+									"});",
+									"",
+									"// Clean up workflow summary",
+									"console.log('=== WORKFLOW COMPLETE ===');",
+									"console.log('PreIPOCompany ID:', pm.variables.get('preIPOCompanyId'));",
+									"console.log('PreIPOCompanyInvestment ID:', pm.variables.get('preIPOCompanyInvestmentId'));",
+									"console.log('PreIPOCompanySPV ID:', pm.variables.get('preIPOCompanySPVId'));",
+									"console.log('Financial Institutions granted access:', JSON.parse(pm.variables.get('financialInstitutionIds')));"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.variables.get('preIPOCompanySPVId')) {",
+									"    throw new Error('preIPOCompanySPVId not set. Please run Step 3 first.');",
+									"}",
+									"",
+									"if (!pm.variables.get('financialInstitutionIds')) {",
+									"    throw new Error('financialInstitutionIds not set. Please run Step 4 first.');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{{financialInstitutionIds}}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary-internal/v1/pre-ipo-company-spv-financial-institution/spv/{{preIPOCompanySPVId}}/financial-institutions",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"primary-internal",
+								"v1",
+								"pre-ipo-company-spv-financial-institution",
+								"spv",
+								"{{preIPOCompanySPVId}}",
+								"financial-institutions"
+							]
+						},
+						"description": "Grants access to the newly created SPV for all Financial Institutions under 'Test Partner LLC'.\n\nThis ensures that the partner's Financial Institutions can view and interact with the SPV."
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "https://api.monark-markets.com",
+			"type": "string"
+		},
+		{
+			"key": "apiKey",
+			"value": "your-api-key-here",
+			"type": "string"
+		}
+	]
+}
