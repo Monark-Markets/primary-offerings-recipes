@@ -1,11 +1,13 @@
 package com.monarkmarkets;
 
 import com.monarkmarkets.primary.client.model.IndicationOfInterest;
+import com.monarkmarkets.primary.client.model.IndicationOfInterestV2;
 import com.monarkmarkets.primary.client.model.Investor;
 import com.monarkmarkets.primary.client.model.Transaction;
 import lombok.extern.slf4j.Slf4j;
 
 import static com.monarkmarkets.IndicationOfInterestRecipes.submitIndicationOfInterest;
+import static com.monarkmarkets.IndicationOfInterestRecipesV2.submitIndicationOfInterestV2;
 import static com.monarkmarkets.InvestorRecipes.investorOnboarding;
 import static com.monarkmarkets.InvestorSubscriptionTransactionRecipes.submitInvestorSubscription;
 import static com.monarkmarkets.PostCloseAccountViewRecipes.postCloseAccountView;
@@ -29,7 +31,8 @@ public class Recipes {
 		log.info("Investor: {}", investor);
 
 		// Execute Submission of Indication of Interest
-		IndicationOfInterest indicationOfInterest = submitIndicationOfInterest(investor.getInvestorReferenceId());
+		IndicationOfInterestV2 indicationOfInterest = submitIndicationOfInterestV2(investor.getInvestorReferenceId());
+
 		log.info("IndicationOfInterest: {}", indicationOfInterest);
 
 		// Execute Investor Subscription using new Transaction API

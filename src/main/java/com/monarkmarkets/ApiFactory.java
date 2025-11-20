@@ -4,6 +4,7 @@ import com.monarkmarkets.primary.client.api.DocumentApi;
 import com.monarkmarkets.primary.client.api.FinancialAdvisorApi;
 import com.monarkmarkets.primary.client.api.FinancialInstitutionApi;
 import com.monarkmarkets.primary.client.api.IndicationOfInterestApi;
+import com.monarkmarkets.primary.client.api.IndicationOfInterestControllerV2Api;
 import com.monarkmarkets.primary.client.api.InvestorApi;
 import com.monarkmarkets.primary.client.api.InvestorSubscriptionActionApi;
 import com.monarkmarkets.primary.client.api.InvestorSubscriptionApi;
@@ -28,6 +29,7 @@ public class ApiFactory {
 	private static InvestorApi investorApi;
 	private static PreIpoCompanyApi preIpoCompanyApi;
 	private static IndicationOfInterestApi indicationOfInterestApi;
+	private static IndicationOfInterestControllerV2Api indicationOfInterestControllerV2Api;
 	private static QuestionnaireApi questionnaireApi;
 	private static QuestionnaireAnswerApi questionnaireAnswerApi;
 	private static PreIpoCompanySpvApi preIpoCompanySpvApi;
@@ -74,6 +76,14 @@ public class ApiFactory {
 			indicationOfInterestApi = new IndicationOfInterestApi(apiClient);
 		}
 		return indicationOfInterestApi;
+	}
+
+	@Synchronized
+	public static IndicationOfInterestControllerV2Api getIndicationOfInterestControllerV2Api() {
+		if (indicationOfInterestControllerV2Api == null) {
+			indicationOfInterestControllerV2Api = new IndicationOfInterestControllerV2Api(apiClient);
+		}
+		return indicationOfInterestControllerV2Api;
 	}
 
 	@Synchronized
