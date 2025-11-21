@@ -1,0 +1,987 @@
+{
+	"info": {
+		"_postman_id": "primary-offerings-ioi-collection",
+		"name": "Primary Offerings - Indication of Interest",
+		"description": "Postman collection for submitting Indications of Interest (IOI) through the Primary Offerings V2 API.\n\n**Sections:**\n1. Investor Onboarding (Get Financial Institutions, Get/Create Investor, Create Financial Advisor)\n2. Submit PreIPOCompany IOI (Get PreIPO Companies, Create IOI for Company)\n3. Submit RegisteredFund IOI (Get Registered Funds, Create IOI for Fund)\n\nThe V2 API supports multiple asset types using `targetId` and `targetAssetType` fields:\n- PreIPOCompany\n- RegisteredFund\n\n**Setup:**\n1. Import the environment file: Primary Offerings - Indication of Interest.postman_environment.json\n2. Set `baseUrl` and `apiKey` in the environment\n3. Run manually (click Send on each request) OR use Collection Runner (Ctrl/Cmd+R)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{apiKey}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Clear collection variables at the start of each run",
+					"if (pm.info.requestName === '1.1 Get All Financial Institutions') {",
+					"    const variablesToClear = [",
+					"        'financialInstitutionId',",
+					"        'investorId',",
+					"        'investorName',",
+					"        'financialAdvisorId',",
+					"        'allPreIPOCompanies',",
+					"        'selectedPreIPOCompanyId',",
+					"        'selectedPreIPOCompanyName',",
+					"        'allRegisteredFunds',",
+					"        'selectedRegisteredFundId',",
+					"        'selectedRegisteredFundName',",
+					"        'ioiId',",
+					"        'numberOfClients'",
+					"    ];",
+					"    ",
+					"    variablesToClear.forEach(varName => {",
+					"        pm.collectionVariables.unset(varName);",
+					"    });",
+					"}"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Check if this is the last request in either IOI workflow",
+					"const isCompanyIOIComplete = pm.info.requestName === '2. Create IOI for PreIPO Company';",
+					"const isRegisteredFundIOIComplete = pm.info.requestName === '2. Create IOI for Registered Fund';",
+					"",
+					"if (isCompanyIOIComplete) {",
+					"    console.log('');",
+					"    console.log('='.repeat(70));",
+					"    console.log('PRE-IPO COMPANY IOI SUBMISSION COMPLETED (V2 API)');",
+					"    console.log('='.repeat(70));",
+					"    console.log('Investor ID:', pm.collectionVariables.get('investorId'));",
+					"    console.log('Investor Name:', pm.collectionVariables.get('investorName'));",
+					"    console.log('Target Company:', pm.collectionVariables.get('selectedPreIPOCompanyName'));",
+					"    console.log('Target Asset Type: PreIPOCompany');",
+					"    console.log('Notional Amount:', pm.collectionVariables.get('ioiNotionalAmount'));",
+					"    console.log('IOI ID:', pm.collectionVariables.get('ioiId'));",
+					"    console.log('='.repeat(70));",
+					"} else if (isRegisteredFundIOIComplete) {",
+					"    console.log('');",
+					"    console.log('='.repeat(70));",
+					"    console.log('REGISTERED FUND IOI SUBMISSION COMPLETED (V2 API)');",
+					"    console.log('='.repeat(70));",
+					"    console.log('Investor ID:', pm.collectionVariables.get('investorId'));",
+					"    console.log('Investor Name:', pm.collectionVariables.get('investorName'));",
+					"    console.log('Target Fund:', pm.collectionVariables.get('selectedRegisteredFundName'));",
+					"    console.log('Target Asset Type: RegisteredFund');",
+					"    console.log('Notional Amount:', pm.collectionVariables.get('ioiNotionalAmount'));",
+					"    console.log('IOI ID:', pm.collectionVariables.get('ioiId'));",
+					"    console.log('='.repeat(70));",
+					"}"
+				]
+			}
+		}
+	],
+	"item": [
+		{
+			"name": "1. Investor Onboarding",
+			"item": [
+				{
+					"name": "1.1 Get All Financial Institutions",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"if (response && response.items && response.items.length > 0) {",
+									"    // Find default financial institution",
+									"    const defaultFI = response.items.find(fi => fi.isDefault === true);",
+									"    ",
+									"    if (defaultFI) {",
+									"        pm.collectionVariables.set('financialInstitutionId', defaultFI.id);",
+									"        console.log('Financial Institution ID:', defaultFI.id);",
+									"    } else {",
+									"        console.error('No default financial institution found');",
+									"    }",
+									"} else {",
+									"    console.error('No financial institutions returned');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/primary/v1/financial-institution?page=1&pageSize=100",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v1", "financial-institution"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "100"
+								}
+							]
+						},
+						"description": "Fetch all financial institutions and select the one."
+					},
+					"response": []
+				},
+				{
+					"name": "1.2 Create Investor",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.collectionVariables.get('financialInstitutionId')) {",
+									"    throw new Error('financialInstitutionId is required. Run \"Get All Financial Institutions\" first.');",
+									"}",
+									"",
+									"// Generate random investor reference ID",
+									"const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';",
+									"let randomStr = '';",
+									"for (let i = 0; i < 20; i++) {",
+									"    randomStr += chars.charAt(Math.floor(Math.random() * chars.length));",
+									"}",
+									"pm.collectionVariables.set('investorReferenceId', 'Investor-' + randomStr);"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 201', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"if (response && response.id) {",
+									"    pm.collectionVariables.set('investorId', response.id);",
+									"    console.log('Investor ID:', response.id);",
+									"} else {",
+									"    console.error('No investor ID in response');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"investorReferenceId\": \"{{investorReferenceId}}\",\n\t\"financialInstitutionId\": \"{{financialInstitutionId}}\",\n\t\"type\": \"IndividualInvestor\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary/v1/investor",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v1", "investor"]
+						},
+						"description": "Create a new investor with Pending status."
+					},
+					"response": []
+				},
+				{
+					"name": "1.3 Get All Questionnaires",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"if (response && response.items && response.items.length > 0) {",
+									"    pm.collectionVariables.set('questionnaires', JSON.stringify(response.items));",
+									"    console.log('Questionnaires count:', response.items.length);",
+									"} else {",
+									"    console.log('No questionnaires found');",
+									"    pm.collectionVariables.set('questionnaires', JSON.stringify([]));",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/primary/v1/questionnaire",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v1", "questionnaire"]
+						},
+						"description": "Fetch all available questionnaires."
+					},
+					"response": []
+				},
+				{
+					"name": "1.4 Answer Questionnaires",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.collectionVariables.get('investorId')) {",
+									"    throw new Error('investorId is required. Run \"Create Investor\" first.');",
+									"}",
+									"",
+									"if (!pm.collectionVariables.get('questionnaires')) {",
+									"    throw new Error('questionnaires are required. Run \"Get All Questionnaires\" first.');",
+									"}",
+									"",
+									"// Note: This is a sample request. You'll need to run this for each questionnaire.",
+									"// In automation, you'd loop through questionnaires and answer each one.",
+									"const questionnaires = JSON.parse(pm.collectionVariables.get('questionnaires'));",
+									"",
+									"if (questionnaires.length === 0) {",
+									"    console.log('No questionnaires to answer');",
+									"    return;",
+									"}",
+									"",
+									"// Take the first questionnaire as an example",
+									"const questionnaire = questionnaires[0];",
+									"pm.collectionVariables.set('currentQuestionnaireId', questionnaire.id);",
+									"",
+									"// Generate random answers for questions",
+									"const answers = [];",
+									"if (questionnaire.questions) {",
+									"    questionnaire.questions.forEach(q => {",
+									"        let value;",
+									"        if (q.options && q.options.length > 0) {",
+									"            value = q.options[Math.floor(Math.random() * q.options.length)];",
+									"        } else {",
+									"            switch (q.format) {",
+									"                case 'INTEGER':",
+									"                    value = String(Math.floor(Math.random() * 20));",
+									"                    break;",
+									"                case 'BOOLEAN':",
+									"                    value = String(Math.random() > 0.5);",
+									"                    break;",
+									"                default:",
+									"                    value = String(Math.floor(Math.random() * 2));",
+									"            }",
+									"        }",
+									"        answers.push({",
+									"            questionnaireQuestionId: q.id,",
+									"            value: value",
+									"        });",
+									"    });",
+									"}",
+									"",
+									"pm.collectionVariables.set('questionnaireAnswers', JSON.stringify(answers));"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 201', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"",
+									"console.log('Questionnaire answered successfully');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"questionnaireId\": \"{{currentQuestionnaireId}}\",\n\t\"investorId\": \"{{investorId}}\",\n\t\"createQuestionAnswers\": {{questionnaireAnswers}}\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary/v1/questionnaire-answer",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v1", "questionnaire-answer"]
+						},
+						"description": "Submit answers to questionnaire questions. Note: Run this for each questionnaire if multiple exist."
+					},
+					"response": []
+				},
+				{
+					"name": "1.5 Update Investor Accreditation",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.collectionVariables.get('investorId')) {",
+									"    throw new Error('investorId is required. Run \"Create Investor\" first.');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 204', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});",
+									"",
+									"console.log('Accreditation status updated');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"investorId\": \"{{investorId}}\",\n\t\"accreditationStatus\": \"KNOWLEDGEABLE_EMPLOYEE\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary/v1/investor/accreditation",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v1", "investor", "accreditation"]
+						},
+						"description": "Update investor accreditation status."
+					},
+					"response": []
+				},
+				{
+					"name": "1.6 Create Financial Advisor",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.collectionVariables.get('financialInstitutionId')) {",
+									"    throw new Error('financialInstitutionId is required.');",
+									"}",
+									"",
+									"// Generate random CRD and IARD numbers",
+									"const randomDigits = (len) => {",
+									"    let str = '';",
+									"    for (let i = 0; i < len; i++) {",
+									"        str += Math.floor(Math.random() * 10);",
+									"    }",
+									"    return str;",
+									"};",
+									"",
+									"pm.collectionVariables.set('crdNumber', randomDigits(8));",
+									"pm.collectionVariables.set('iardNumber', randomDigits(8));"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 201', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"if (response && response.id) {",
+									"    pm.collectionVariables.set('financialAdvisorId', response.id);",
+									"    console.log('Financial Advisor ID:', response.id);",
+									"} else {",
+									"    console.error('No financial advisor ID in response');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"financialInstitutionId\": \"{{financialInstitutionId}}\",\n\t\"crdNumber\": \"{{crdNumber}}\",\n\t\"iardNumber\": \"{{iardNumber}}\",\n\t\"firstName\": \"Jane\",\n\t\"lastName\": \"Advisor\",\n\t\"mailingAddress\": \"123 Main St\",\n\t\"mailingCity\": \"New York\",\n\t\"mailingState\": \"NY\",\n\t\"mailingZipCode\": \"10001\",\n\t\"mailingCountryCode\": \"US\",\n\t\"branchNumber\": \"001\",\n\t\"phoneCountryCode\": \"1\",\n\t\"phoneNumber\": \"1234567890\",\n\t\"phoneExtension\": \"123\",\n\t\"emailAddress\": \"johnadvisor@example.com\",\n\t\"fax\": \"123-456-7890\",\n\t\"prefix\": \"Mrs\",\n\t\"broker\": \"ExampleBroker\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary/v1/financial-advisor",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v1", "financial-advisor"]
+						},
+						"description": "Create a financial advisor for the investor."
+					},
+					"response": []
+				},
+				{
+					"name": "1.7 Update Investor Details",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.collectionVariables.get('investorId')) {",
+									"    throw new Error('investorId is required.');",
+									"}",
+									"if (!pm.collectionVariables.get('investorReferenceId')) {",
+									"    throw new Error('investorReferenceId is required.');",
+									"}",
+									"if (!pm.collectionVariables.get('financialAdvisorId')) {",
+									"    throw new Error('financialAdvisorId is required. Run \"Create Financial Advisor\" first.');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"console.log('Investor details updated successfully');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"id\": \"{{investorId}}\",\n\t\"investorReferenceId\": \"{{investorReferenceId}}\",\n\t\"financialAdvisorId\": \"{{financialAdvisorId}}\",\n\t\"individualInvestor\": {\n\t\t\"firstName\": \"John\",\n\t\t\"lastName\": \"Doe\",\n\t\t\"email\": \"john.doe@example.com\",\n\t\t\"exemptPayeeCode\": \"1\",\n\t\t\"street1\": \"123 Main St\",\n\t\t\"city\": \"Metropolis\",\n\t\t\"state\": \"NY\",\n\t\t\"zipCode\": \"10001\",\n\t\t\"countryCode\": \"US\",\n\t\t\"phoneCountryCode\": \"1\",\n\t\t\"phoneNumber\": \"5551234567\",\n\t\t\"mailingStreet1\": \"123 Main St\",\n\t\t\"mailingAddressCity\": \"Metropolis\",\n\t\t\"mailingAddressState\": \"NY\",\n\t\t\"mailingAddressZipCode\": \"10001\",\n\t\t\"mailingAddressCountry\": \"US\",\n\t\t\"citizenship\": \"US\",\n\t\t\"dateOfBirth\": \"1980-01-01\",\n\t\t\"taxId\": \"792-61-0047\",\n\t\t\"passportNumber\": \"X1234567\",\n\t\t\"isSubscriptionAdvisorOrERA\": true,\n\t\t\"isUSBased\": true,\n\t\t\"qualifiedStatus\": \"QUALIFIED_CLIENT\"\n\t}\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary/v1/investor",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v1", "investor"]
+						},
+						"description": "Update investor with full details including financial advisor association."
+					},
+					"response": []
+				},
+				{
+					"name": "1.8 Get Investor By ID",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.collectionVariables.get('investorId')) {",
+									"    throw new Error('investorId is required. Run \"Create Investor\" first.');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"console.log('Investor status:', response.status);",
+									"console.log('Investor onboarding complete!');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/primary/v1/investor/{{investorId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v1", "investor", "{{investorId}}"]
+						},
+						"description": "Verify investor details and status after onboarding."
+					},
+					"response": []
+				}
+			],
+			"description": "Complete investor onboarding workflow",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [""]
+					}
+				}
+			]
+		},
+		{
+			"name": "2. Submit PreIPOCompany IOI",
+			"item": [
+				{
+					"name": "1. Get All PreIPO Companies",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// No prerequisites - this endpoint is public"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"if (response && response.items && response.items.length > 0) {",
+									"    // Store all companies",
+									"    pm.collectionVariables.set('allPreIPOCompanies', JSON.stringify(response.items));",
+									"    ",
+									"    console.log('='.repeat(50));",
+									"    console.log('AVAILABLE PRE-IPO COMPANIES');",
+									"    console.log('='.repeat(50));",
+									"    console.log(`Total Companies: ${response.items.length}`);",
+									"    console.log('');",
+									"    ",
+									"    response.items.forEach((company, index) => {",
+									"        console.log(`[${index + 1}] ${company.name}`);",
+									"        console.log(`    ID: ${company.id}`);",
+									"        console.log(`    Symbol: ${company.symbol || 'N/A'}`);",
+									"        console.log(`    Industry: ${company.industry || 'N/A'}`);",
+									"        if (company.lastValuation) {",
+									"            console.log(`    Last Valuation: $${company.lastValuation.toLocaleString()}`);",
+									"        }",
+									"        console.log('');",
+									"    });",
+									"    ",
+									"    // Auto-select the first company for convenience",
+									"    if (response.items[0]) {",
+									"        pm.collectionVariables.set('selectedPreIPOCompanyId', response.items[0].id);",
+									"        pm.collectionVariables.set('selectedPreIPOCompanyName', response.items[0].name);",
+									"        console.log('Auto-selected company for IOI:', response.items[0].name);",
+									"        console.log('To select a different company, update the \"selectedPreIPOCompanyId\" collection variable.');",
+									"    }",
+									"    ",
+									"    console.log('='.repeat(50));",
+									"    ",
+									"    // Display pagination info",
+									"    if (response.pagination) {",
+									"        console.log('Pagination:', `Page ${response.pagination.currentPage} of ${response.pagination.totalPages}`);",
+									"    }",
+									"} else {",
+									"    console.error('No PreIPO companies found');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/primary/v1/pre-ipo-company?page=1&pageSize=100&sortBy=UpdatedAt&sortOrder=Descending",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"primary",
+								"v1",
+								"pre-ipo-company"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number (starts at 1)"
+								},
+								{
+									"key": "pageSize",
+									"value": "100",
+									"description": "Number of items per page"
+								},
+								{
+									"key": "sortBy",
+									"value": "UpdatedAt",
+									"description": "Field to sort by"
+								},
+								{
+									"key": "sortOrder",
+									"value": "Descending",
+									"description": "Sort order (Ascending or Descending)"
+								},
+								{
+									"key": "searchTerm",
+									"value": "",
+									"disabled": true,
+									"description": "Optional search term"
+								},
+								{
+									"key": "listingType",
+									"value": "",
+									"disabled": true,
+									"description": "Optional listing type filter"
+								}
+							]
+						},
+						"description": "Retrieve all available PreIPO companies. The response will auto-select the first company, but you can manually change the selection by updating the `selectedPreIPOCompanyId` collection variable."
+					},
+					"response": []
+				},
+				{
+					"name": "2. Create IOI for PreIPO Company",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const investorId = pm.collectionVariables.get('investorId');",
+									"const companyId = pm.collectionVariables.get('selectedPreIPOCompanyId');",
+									"",
+									"if (!investorId) {",
+									"    throw new Error('investorId is required. Run Investor Onboarding first.');",
+									"}",
+									"",
+									"if (!companyId) {",
+									"    throw new Error('selectedPreIPOCompanyId is required. Run \"Get All PreIPO Companies\" first.');",
+									"}",
+									"",
+									"// Set default notional amount if not already set",
+									"if (!pm.collectionVariables.get('ioiNotionalAmount')) {",
+									"    pm.collectionVariables.set('ioiNotionalAmount', 5000.00);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 201', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"if (response && response.id) {",
+									"    pm.collectionVariables.set('ioiId', response.id);",
+									"    ",
+									"    console.log('='.repeat(50));",
+									"    console.log('IOI CREATED SUCCESSFULLY (V2 API)');",
+									"    console.log('='.repeat(50));",
+									"    console.log('IOI ID:', response.id);",
+									"    console.log('Investor ID:', response.investorId);",
+									"    console.log('Target ID:', response.targetId);",
+									"    console.log('Target Asset Type:', response.targetAssetType);",
+									"    console.log('Notional Amount:', response.notionalAmount, response.currency);",
+									"    console.log('Number of Clients:', response.numberOfClients || 'N/A');",
+									"    console.log('Status:', response.status || 'N/A');",
+									"    console.log('Created At:', response.createdAt);",
+									"    console.log('='.repeat(50));",
+									"} else {",
+									"    console.error('Failed to create IOI');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"investorId\": \"{{investorId}}\",\n\t\"targetId\": \"{{selectedPreIPOCompanyId}}\",\n\t\"targetAssetType\": \"PreIPOCompany\",\n\t\"notionalAmount\": {{ioiNotionalAmount}},\n\t\"currency\": \"USD\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary/v2/indication-of-interest",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"primary",
+								"v2",
+								"indication-of-interest"
+							]
+						},
+						"description": "Create an Indication of Interest for the selected PreIPO Company using the V2 API. \n\nThe V2 API uses `targetId` and `targetAssetType: PreIPOCompany` to specify the company target.\n\nThe notional amount defaults to $5,000 USD but can be changed by updating the `ioiNotionalAmount` collection variable."
+					},
+					"response": []
+				}
+			],
+			"description": "Complete PreIPO Company IOI submission workflow",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [""]
+					}
+				}
+			]
+		},
+		{
+			"name": "3. Submit RegisteredFund IOI",
+			"item": [
+				{
+					"name": "1. Get All Registered Funds",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"if (response && response.items && response.items.length > 0) {",
+									"    // Store all registered funds",
+									"    pm.collectionVariables.set('allRegisteredFunds', JSON.stringify(response.items));",
+									"    ",
+									"    console.log('='.repeat(50));",
+									"    console.log('AVAILABLE REGISTERED FUNDS');",
+									"    console.log('='.repeat(50));",
+									"    console.log(`Total Funds: ${response.items.length}`);",
+									"    console.log('');",
+									"    ",
+									"    response.items.forEach((fund, index) => {",
+									"        console.log(`[${index + 1}] ${fund.name}`);",
+									"        console.log(`    ID: ${fund.id}`);",
+									"        console.log(`    Symbol: ${fund.symbol || 'N/A'}`);",
+									"        console.log(`    CUSIP: ${fund.cusip || 'N/A'}`);",
+									"        if (fund.nav) {",
+									"            console.log(`    NAV: $${fund.nav.toLocaleString()}`);",
+									"        }",
+									"        console.log('');",
+									"    });",
+									"    ",
+									"    // Auto-select the first fund for convenience",
+									"    if (response.items[0]) {",
+									"        pm.collectionVariables.set('selectedRegisteredFundId', response.items[0].id);",
+									"        pm.collectionVariables.set('selectedRegisteredFundName', response.items[0].name);",
+									"        console.log('Auto-selected fund for IOI:', response.items[0].name);",
+									"        console.log('To select a different fund, update the \"selectedRegisteredFundId\" collection variable.');",
+									"    }",
+									"    ",
+									"    console.log('='.repeat(50));",
+									"    ",
+									"    // Display pagination info",
+									"    if (response.pagination) {",
+									"        console.log('Pagination:', `Page ${response.pagination.currentPage} of ${response.pagination.totalPages}`);",
+									"    }",
+									"} else {",
+									"    console.error('No Registered Funds found');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/primary/v1/registered-fund?page=1&pageSize=100",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"primary",
+								"v1",
+								"registered-fund"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number (starts at 1)"
+								},
+								{
+									"key": "pageSize",
+									"value": "100",
+									"description": "Number of items per page"
+								}
+							]
+						},
+						"description": "Retrieve all available Registered Funds. The response will auto-select the first fund, but you can manually change the selection by updating the `selectedRegisteredFundId` collection variable."
+					},
+					"response": []
+				},
+				{
+					"name": "2. Create IOI for Registered Fund",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const investorId = pm.collectionVariables.get('investorId');",
+									"const fundId = pm.collectionVariables.get('selectedRegisteredFundId');",
+									"",
+									"if (!investorId) {",
+									"    throw new Error('investorId is required. Run Investor Onboarding first.');",
+									"}",
+									"",
+									"if (!fundId) {",
+									"    throw new Error('selectedRegisteredFundId is required. Run \"Get All Registered Funds\" first.');",
+									"}",
+									"",
+									"// Set default notional amount if not already set",
+									"if (!pm.collectionVariables.get('ioiNotionalAmount')) {",
+									"    pm.collectionVariables.set('ioiNotionalAmount', 5000.00);",
+									"}",
+									"",
+									"// Set default number of clients if not already set (for Registered Funds)",
+									"if (!pm.collectionVariables.get('numberOfClients')) {",
+									"    pm.collectionVariables.set('numberOfClients', 10000);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 201', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"if (response && response.id) {",
+									"    pm.collectionVariables.set('ioiId', response.id);",
+									"    ",
+									"    console.log('='.repeat(50));",
+									"    console.log('IOI CREATED SUCCESSFULLY (V2 API)');",
+									"    console.log('='.repeat(50));",
+									"    console.log('IOI ID:', response.id);",
+									"    console.log('Investor ID:', response.investorId);",
+									"    console.log('Target ID:', response.targetId);",
+									"    console.log('Target Asset Type:', response.targetAssetType);",
+									"    console.log('Notional Amount:', response.notionalAmount, response.currency);",
+									"    console.log('Number of Clients:', response.numberOfClients || 'N/A');",
+									"    console.log('Status:', response.status || 'N/A');",
+									"    console.log('Created At:', response.createdAt);",
+									"    console.log('='.repeat(50));",
+									"} else {",
+									"    console.error('Failed to create IOI');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"investorId\": \"{{investorId}}\",\n\t\"targetId\": \"{{selectedRegisteredFundId}}\",\n\t\"targetAssetType\": \"RegisteredFund\",\n\t\"notionalAmount\": {{ioiNotionalAmount}},\n\t\"numberOfClients\": {{numberOfClients}},\n\t\"currency\": \"USD\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary/v2/indication-of-interest",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"primary",
+								"v2",
+								"indication-of-interest"
+							]
+						},
+						"description": "Create an Indication of Interest for the selected Registered Fund using the V2 API. \n\nThe V2 API uses `targetId` and `targetAssetType: RegisteredFund` to specify the fund target.\n\n**Configurable fields:**\n- `notionalAmount`: Defaults to $5,000 USD\n- `numberOfClients`: Defaults to 10,000 (representing the number of clients this IOI represents)\n\nBoth values can be changed by updating the corresponding collection variables. Valid range for numberOfClients: 5,000 - 50,000."
+					},
+					"response": []
+				}
+			],
+			"description": "Complete Registered Fund IOI submission workflow",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [""]
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "ioiNotionalAmount",
+			"value": "5000.00",
+			"type": "number"
+		},
+		{
+			"key": "numberOfClients",
+			"value": "10000",
+			"type": "number"
+		}
+	]
+}
