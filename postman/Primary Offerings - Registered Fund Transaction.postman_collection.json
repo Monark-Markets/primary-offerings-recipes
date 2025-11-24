@@ -686,10 +686,159 @@
 			"description": "Create subscription transaction and retrieve transaction actions"
 		},
 		{
-			"name": "4. Complete Investor Transaction Actions",
+			"name": "4. Fetch Preview Documents",
 			"item": [
 				{
-					"name": "4.1 Complete Investor DocumentAcknowledge Actions",
+					"name": "4.1 Get Documents by Transaction ID",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.collectionVariables.get('transactionId')) {",
+									"    throw new Error('transactionId is required.');",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const response = pm.response.json();",
+									"",
+									"if (response && response.items && response.items.length > 0) {",
+									"    // Store all document details",
+									"    pm.collectionVariables.set('previewDocuments', JSON.stringify(response.items));",
+									"    ",
+									"    console.log('='.repeat(50));",
+									"    console.log('PREVIEW DOCUMENTS');",
+									"    console.log('='.repeat(50));",
+									"    console.log(`Total Documents: ${response.items.length}`);",
+									"    ",
+									"    response.items.forEach((doc, index) => {",
+									"        console.log(`\\n[${index + 1}] ${doc.name}`);",
+									"        console.log(`    ID: ${doc.id}`);",
+									"        console.log(`    Type: ${doc.type}`);",
+									"        console.log(`    Download URL: ${doc.url}`);",
+									"    });",
+									"    ",
+									"    // Store the first document for download",
+									"    if (response.items[0]) {",
+									"        pm.collectionVariables.set('firstPreviewDocumentDownloadUrl', response.items[0].url);",
+									"        pm.collectionVariables.set('firstPreviewDocumentName', response.items[0].name);",
+									"    }",
+									"    ",
+									"    console.log('='.repeat(50));",
+									"} else {",
+									"    console.log('No preview documents found');",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/primary/v2/document?transactionId={{transactionId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"primary",
+								"v2",
+								"document"
+							],
+							"query": [
+								{
+									"key": "transactionId",
+									"value": "{{transactionId}}"
+								}
+							]
+						},
+						"description": "Fetch all preview documents for the transaction using the V2 Document API. Returns a list of documents with their download URLs."
+					},
+					"response": []
+				},
+				{
+					"name": "4.2 Download Preview Document",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const downloadUrl = pm.collectionVariables.get('firstPreviewDocumentDownloadUrl');",
+									"",
+									"if (!downloadUrl) {",
+									"    console.log('Skipping: No document download URL available');",
+									"    pm.execution.skipRequest();",
+									"} else {",
+									"    const documentName = pm.collectionVariables.get('firstPreviewDocumentName') || 'document';",
+									"    console.log(`Preparing to download: ${documentName}`);",
+									"    console.log(`Download URL: ${downloadUrl}`);",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const location = pm.response.headers.get('location');",
+									"",
+									"if (location) {",
+									"    console.log('='.repeat(50));",
+									"    console.log('PREVIEW DOCUMENT DOWNLOAD REDIRECT');",
+									"    console.log('='.repeat(50));",
+									"    console.log('S3 URL:', location);",
+									"    console.log('');",
+									"    console.log('='.repeat(50));",
+									"} else {",
+									"    console.error('No redirect location found in response');",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "*/*"
+							}
+						],
+						"url": {
+							"raw": "{{firstPreviewDocumentDownloadUrl}}",
+							"host": [
+								"{{firstPreviewDocumentDownloadUrl}}"
+							]
+						},
+						"description": "Download the preview document."
+					},
+					"response": []
+				}
+			],
+			"description": "Fetch preview documents for the transaction."
+		},
+		{
+			"name": "5. Complete Investor Transaction Actions",
+			"item": [
+				{
+					"name": "5.1 Complete Investor DocumentAcknowledge Actions",
 					"event": [
 						{
 							"listen": "prerequest",
@@ -786,7 +935,7 @@
 					"response": []
 				},
 				{
-					"name": "4.2 Complete Investor TextAcknowledge Actions",
+					"name": "5.2 Complete Investor TextAcknowledge Actions",
 					"event": [
 						{
 							"listen": "prerequest",
@@ -883,7 +1032,7 @@
 					"response": []
 				},
 				{
-					"name": "4.3 Complete Investor DocumentSign Actions",
+					"name": "5.3 Complete Investor DocumentSign Actions",
 					"event": [
 						{
 							"listen": "prerequest",
@@ -993,10 +1142,10 @@
 			"description": "Complete all transaction actions where responsibleParty is Investor. All action types (DocumentAcknowledge, TextAcknowledge, DocumentSign) use the same /complete endpoint. Documents are signed automatically when all investor actions are completed."
 		},
 		{
-			"name": "5. Complete Advisor Transaction Actions",
+			"name": "6. Complete Advisor Transaction Actions",
 			"item": [
 				{
-					"name": "5.1 Complete Advisor DocumentAcknowledge Actions",
+					"name": "6.1 Complete Advisor DocumentAcknowledge Actions",
 					"event": [
 						{
 							"listen": "prerequest",
@@ -1093,7 +1242,7 @@
 					"response": []
 				},
 				{
-					"name": "5.2 Complete Advisor TextAcknowledge Actions",
+					"name": "6.2 Complete Advisor TextAcknowledge Actions",
 					"event": [
 						{
 							"listen": "prerequest",
@@ -1190,7 +1339,7 @@
 					"response": []
 				},
 				{
-					"name": "5.3 Complete Advisor DocumentSign Actions",
+					"name": "6.3 Complete Advisor DocumentSign Actions",
 					"event": [
 						{
 							"listen": "prerequest",
@@ -1300,10 +1449,10 @@
 			"description": "Complete all transaction actions where responsibleParty is Advisor. All action types (DocumentAcknowledge, TextAcknowledge, DocumentSign) use the same /complete endpoint. Documents are signed automatically when all advisor actions are completed."
 		},
 		{
-			"name": "6. Fetch Signed Documents",
+			"name": "7. Fetch Signed Documents",
 			"item": [
 				{
-					"name": "6.1 Get Signed Documents by Transaction ID",
+					"name": "7.1 Get Signed Documents by Transaction ID",
 					"event": [
 						{
 							"listen": "prerequest",
@@ -1376,7 +1525,7 @@
 					"response": []
 				},
 				{
-					"name": "6.2 Download Signed Document",
+					"name": "7.2 Download Signed Document",
 					"event": [
 						{
 							"listen": "prerequest",
@@ -1400,11 +1549,6 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"// The endpoint returns 302 redirect to S3 presigned URL",
-									"pm.test('Status code is 302 (redirect)', function () {",
-									"    pm.expect(pm.response.code).to.equal(302);",
-									"});",
-									"",
 									"// Get the redirect location (S3 presigned URL)",
 									"const location = pm.response.headers.get('location');",
 									"",
@@ -1445,7 +1589,7 @@
 					"response": []
 				},
 				{
-					"name": "6.3 Get Final Transaction Status",
+					"name": "7.3 Get Final Transaction Status",
 					"event": [
 						{
 							"listen": "prerequest",

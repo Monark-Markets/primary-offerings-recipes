@@ -1,0 +1,156 @@
+{
+	"info": {
+		"_postman_id": "primary-marketplace-2024",
+		"name": "Primary Offerings - Marketplace",
+		"description": "# Primary Offerings Marketplace\n\nThis collection provides public API endpoints to fetch marketplace data from the Primary Offerings platform.\n\n## Endpoints\n\n- **Get All PreIPOCompany** - Retrieves all PreIPO companies available in the marketplace\n- **Get All RegisteredFund** - Retrieves all registered investment funds available on the platform\n\n## Prerequisites\n- Valid API key with appropriate permissions\n- Base URL configured for the Primary API\n\n## Variables\n- `baseUrl`: Base URL for the Primary API (default: https://api.monark-markets.com)\n- `apiKey`: Your API key for authentication (Bearer token)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{apiKey}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"exec": [
+					"// Add Cloudflare Access headers if configured (for staging/demo environments)",
+					"const cfClientId = pm.variables.get('cfAccessClientId');",
+					"const cfClientSecret = pm.variables.get('cfAccessClientSecret');",
+					"",
+					"if (cfClientId && cfClientSecret && cfClientId !== 'YOUR_CF_CLIENT_ID' && cfClientSecret !== 'YOUR_CF_CLIENT_SECRET') {",
+					"    pm.request.headers.add({",
+					"        key: 'CF-Access-Client-Id',",
+					"        value: cfClientId",
+					"    });",
+					"    pm.request.headers.add({",
+					"        key: 'CF-Access-Client-Secret',",
+					"        value: cfClientSecret",
+					"    });",
+					"}"
+				],
+				"type": "text/javascript"
+			}
+		}
+	],
+	"item": [
+		{
+			"name": "Get All PreIPOCompany",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response has items array\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('items');",
+							"    pm.expect(jsonData.items).to.be.an('array');",
+							"    console.log('Total PreIPOCompanies:', jsonData.items.length);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/primary/v1/pre-ipo-company?page=1&pageSize=100",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"primary",
+						"v1",
+						"pre-ipo-company"
+					],
+					"query": [
+						{
+							"key": "page",
+							"value": "1"
+						},
+						{
+							"key": "pageSize",
+							"value": "100"
+						}
+					]
+				},
+				"description": "Retrieves all PreIPO companies available in the marketplace."
+			},
+			"response": []
+		},
+		{
+			"name": "Get All RegisteredFund",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response has items array\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('items');",
+							"    pm.expect(jsonData.items).to.be.an('array');",
+							"    console.log('Total RegisteredFunds:', jsonData.items.length);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/primary/v1/registered-fund?page=1&pageSize=100",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"primary",
+						"v1",
+						"registered-fund"
+					],
+					"query": [
+						{
+							"key": "page",
+							"value": "1"
+						},
+						{
+							"key": "pageSize",
+							"value": "100"
+						}
+					]
+				},
+				"description": "Retrieves all registered funds available on the platform."
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "https://api.monark-markets.com",
+			"type": "string"
+		},
+		{
+			"key": "apiKey",
+			"value": "your-api-key-here",
+			"type": "string"
+		}
+	]
+}
