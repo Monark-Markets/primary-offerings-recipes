@@ -89,7 +89,31 @@
 									"for (let i = 0; i < 20; i++) {",
 									"    randomStr += chars.charAt(Math.floor(Math.random() * chars.length));",
 									"}",
-									"pm.collectionVariables.set('investorReferenceId', 'Investor-' + randomStr);"
+									"pm.collectionVariables.set('investorReferenceId', 'Investor-' + randomStr);",
+									"",
+									"// Generate random SSN",
+									"const randomSSN = () => {",
+									"    const area = String(Math.floor(Math.random() * 899) + 100);",
+									"    const group = String(Math.floor(Math.random() * 99) + 10);",
+									"    const serial = String(Math.floor(Math.random() * 9000) + 1000);",
+									"    return `${area}-${group}-${serial}`;",
+									"};",
+									"pm.collectionVariables.set('randomSSN', randomSSN());",
+									"",
+									"// Generate random email",
+									"const randomEmail = `investor.${randomStr.substring(0, 8).toLowerCase()}@example.com`;",
+									"pm.collectionVariables.set('randomEmail', randomEmail);",
+									"",
+									"// Generate random phone number",
+									"const randomPhone = `415${Math.floor(Math.random() * 9000000) + 1000000}`;",
+									"pm.collectionVariables.set('randomPhone', randomPhone);",
+									"",
+									"// Generate random date of birth (between 25-65 years old)",
+									"const today = new Date();",
+									"const birthYear = today.getFullYear() - Math.floor(Math.random() * 40) - 25;",
+									"const birthMonth = String(Math.floor(Math.random() * 12) + 1).padStart(2, '0');",
+									"const birthDay = String(Math.floor(Math.random() * 28) + 1).padStart(2, '0');",
+									"pm.collectionVariables.set('randomDOB', `${birthYear}-${birthMonth}-${birthDay}`);"
 								],
 								"type": "text/javascript"
 							}
@@ -125,14 +149,14 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n\t\"investorReferenceId\": \"{{investorReferenceId}}\",\n\t\"financialInstitutionId\": \"{{financialInstitutionId}}\",\n\t\"type\": \"IndividualInvestor\"\n}"
+							"raw": "{\n\t\"investorReferenceId\": \"{{investorReferenceId}}\",\n\t\"financialInstitutionId\": \"{{financialInstitutionId}}\",\n\t\"type\": \"IndividualInvestor\",\n\t\"pii\": {\n\t\t\"individualInvestor\": {\n\t\t\t\"firstName\": \"John\",\n\t\t\t\"lastName\": \"Doe\",\n\t\t\t\"isUSBased\": true,\n\t\t\t\"dateOfBirth\": \"{{randomDOB}}\",\n\t\t\t\"street1\": \"123 Market Street\",\n\t\t\t\"street2\": \"Apt 456\",\n\t\t\t\"city\": \"San Francisco\",\n\t\t\t\"state\": \"CA\",\n\t\t\t\"zipCode\": \"94103\",\n\t\t\t\"countryCode\": \"US\",\n\t\t\t\"phoneCountryCode\": \"1\",\n\t\t\t\"phoneNumber\": \"{{randomPhone}}\",\n\t\t\t\"mailingStreet1\": \"123 Market Street\",\n\t\t\t\"mailingStreet2\": \"Apt 456\",\n\t\t\t\"mailingAddressCity\": \"San Francisco\",\n\t\t\t\"mailingAddressState\": \"CA\",\n\t\t\t\"mailingAddressZipCode\": \"94103\",\n\t\t\t\"mailingAddressCountry\": \"US\",\n\t\t\t\"exemptPayeeCode\": \"1\",\n\t\t\t\"isSubscriptionAdvisorOrERA\": true,\n\t\t\t\"email\": \"{{randomEmail}}\",\n\t\t\t\"taxId\": \"{{randomSSN}}\",\n\t\t\t\"citizenship\": \"US\",\n\t\t\t\"qualifiedStatus\": \"QUALIFIED_CLIENT\"\n\t\t}\n\t}\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/primary/v1/investor",
 							"host": ["{{baseUrl}}"],
 							"path": ["primary", "v1", "investor"]
 						},
-						"description": "Create a new investor with Pending status."
+						"description": "Create a new US-based California investor with complete PII. Random values are generated for SSN, email, phone, and date of birth."
 					},
 					"response": []
 				},
@@ -385,7 +409,7 @@
 					"response": []
 				},
 				{
-					"name": "1.7 Update Investor Details",
+					"name": "1.7 Associate Financial Advisor to Investor",
 					"event": [
 						{
 							"listen": "prerequest",
@@ -412,7 +436,7 @@
 									"    pm.response.to.have.status(200);",
 									"});",
 									"",
-									"console.log('Investor details updated successfully');"
+									"console.log('Financial advisor associated with investor successfully');"
 								],
 								"type": "text/javascript"
 							}
@@ -428,14 +452,14 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n\t\"id\": \"{{investorId}}\",\n\t\"investorReferenceId\": \"{{investorReferenceId}}\",\n\t\"financialAdvisorId\": \"{{financialAdvisorId}}\",\n\t\"individualInvestor\": {\n\t\t\"firstName\": \"John\",\n\t\t\"lastName\": \"Doe\",\n\t\t\"email\": \"john.doe@example.com\",\n\t\t\"exemptPayeeCode\": \"1\",\n\t\t\"street1\": \"123 Main St\",\n\t\t\"city\": \"Metropolis\",\n\t\t\"state\": \"NY\",\n\t\t\"zipCode\": \"10001\",\n\t\t\"countryCode\": \"US\",\n\t\t\"phoneCountryCode\": \"1\",\n\t\t\"phoneNumber\": \"5551234567\",\n\t\t\"mailingStreet1\": \"123 Main St\",\n\t\t\"mailingAddressCity\": \"Metropolis\",\n\t\t\"mailingAddressState\": \"NY\",\n\t\t\"mailingAddressZipCode\": \"10001\",\n\t\t\"mailingAddressCountry\": \"US\",\n\t\t\"citizenship\": \"US\",\n\t\t\"dateOfBirth\": \"1980-01-01\",\n\t\t\"taxId\": \"792-61-0047\",\n\t\t\"passportNumber\": \"X1234567\",\n\t\t\"isSubscriptionAdvisorOrERA\": true,\n\t\t\"isUSBased\": true,\n\t\t\"qualifiedStatus\": \"QUALIFIED_CLIENT\"\n\t}\n}"
+							"raw": "{\n\t\"id\": \"{{investorId}}\",\n\t\"investorReferenceId\": \"{{investorReferenceId}}\",\n\t\"financialAdvisorId\": \"{{financialAdvisorId}}\",\n\t\"individualInvestor\": {\n\t\t\"firstName\": \"John\",\n\t\t\"lastName\": \"Doe\",\n\t\t\"isUSBased\": true,\n\t\t\"dateOfBirth\": \"{{randomDOB}}\",\n\t\t\"street1\": \"123 Market Street\",\n\t\t\"street2\": \"Apt 456\",\n\t\t\"city\": \"San Francisco\",\n\t\t\"state\": \"CA\",\n\t\t\"zipCode\": \"94103\",\n\t\t\"countryCode\": \"US\",\n\t\t\"phoneCountryCode\": \"1\",\n\t\t\"phoneNumber\": \"{{randomPhone}}\",\n\t\t\"mailingStreet1\": \"123 Market Street\",\n\t\t\"mailingStreet2\": \"Apt 456\",\n\t\t\"mailingAddressCity\": \"San Francisco\",\n\t\t\"mailingAddressState\": \"CA\",\n\t\t\"mailingAddressZipCode\": \"94103\",\n\t\t\"mailingAddressCountry\": \"US\",\n\t\t\"exemptPayeeCode\": \"1\",\n\t\t\"isSubscriptionAdvisorOrERA\": true,\n\t\t\"email\": \"{{randomEmail}}\",\n\t\t\"taxId\": \"{{randomSSN}}\",\n\t\t\"citizenship\": \"US\",\n\t\t\"qualifiedStatus\": \"QUALIFIED_CLIENT\"\n\t}\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/primary/v1/investor",
 							"host": ["{{baseUrl}}"],
 							"path": ["primary", "v1", "investor"]
 						},
-						"description": "Update investor with full details including financial advisor association."
+						"description": "Associate the financial advisor with the investor by updating the investor with the financialAdvisorId."
 					},
 					"response": []
 				},
@@ -1269,11 +1293,17 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/primary/v1/questionnaire/{{currentQuestionnaireDataId}}",
+							"raw": "{{baseUrl}}/primary/v1/questionnaire/{{currentQuestionnaireDataId}}?investorId={{investorId}}",
 							"host": ["{{baseUrl}}"],
-							"path": ["primary", "v1", "questionnaire", "{{currentQuestionnaireDataId}}"]
+							"path": ["primary", "v1", "questionnaire", "{{currentQuestionnaireDataId}}"],
+							"query": [
+								{
+									"key": "investorId",
+									"value": "{{investorId}}"
+								}
+							]
 						},
-						"description": "Fetch the questionnaire details by ID from the Questionnaire transaction action's dataId field."
+						"description": "Fetch the questionnaire details by ID from the Questionnaire transaction action's dataId field. The investorId is passed to retrieve investor-specific questionnaire data if applicable."
 					},
 					"response": []
 				},
@@ -1956,6 +1986,10 @@
 					"        'financialInstitutionId',",
 					"        'investorId',",
 					"        'investorReferenceId',",
+					"        'randomSSN',",
+					"        'randomEmail',",
+					"        'randomPhone',",
+					"        'randomDOB',",
 					"        'questionnaires',",
 					"        'currentQuestionnaireId',",
 					"        'questionnaireAnswers',",
