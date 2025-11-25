@@ -24,22 +24,7 @@
 		{
 			"listen": "prerequest",
 			"script": {
-				"exec": [
-					"// Add Cloudflare Access headers if configured (for staging/demo environments)",
-					"const cfClientId = pm.variables.get('cfAccessClientId');",
-					"const cfClientSecret = pm.variables.get('cfAccessClientSecret');",
-					"",
-					"if (cfClientId && cfClientSecret && cfClientId !== 'YOUR_CF_CLIENT_ID' && cfClientSecret !== 'YOUR_CF_CLIENT_SECRET') {",
-					"    pm.request.headers.add({",
-					"        key: 'CF-Access-Client-Id',",
-					"        value: cfClientId",
-					"    });",
-					"    pm.request.headers.add({",
-					"        key: 'CF-Access-Client-Secret',",
-					"        value: cfClientSecret",
-					"    });",
-					"}"
-				],
+				"exec": [],
 				"type": "text/javascript"
 			}
 		}
