@@ -95,7 +95,7 @@
 									"// Avoids invalid patterns: area 000/666/900-999, group 00, serial 0000",
 									"const randomSSN = () => {",
 									"    // Area: 001-665 or 667-899 (avoiding 000, 666, 900-999)",
-									"    let area = Math.floor(Math.random() * 899) + 1;",
+									"    let area = Math.floor(Math.random() * 898) + 1;",
 									"    if (area >= 666) area += 1; // Skip 666",
 									"    area = String(area).padStart(3, '0');",
 									"    ",
