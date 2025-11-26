@@ -1828,7 +1828,13 @@
 						"url": {
 							"raw": "{{baseUrl}}/primary/v2/transaction/{{transactionId}}",
 							"host": ["{{baseUrl}}"],
-							"path": ["primary", "v2", "transaction", "{{transactionId}}"]
+							"path": ["primary", "v2", "transaction", "{{transactionId}}"],
+							"query": [
+								{
+									"key": "includeDocuments",
+									"value": "true"
+								}
+							]
 						},
 						"description": "Verify final transaction status after completing all transaction actions."
 					},
