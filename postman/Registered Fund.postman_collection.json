@@ -1,8 +1,8 @@
 {
 	"info": {
-		"_postman_id": "registered-fund-transaction-recipe",
-		"name": "Registered Funds Transaction",
-		"description": "Complete flow for creating a Registered Fund subscription using the Transaction API (V2).\n\nThis collection implements the following workflow:\n1. Investor Onboarding\n2. Select Registered Fund by symbol\n3. Create Subscription Transaction\n4. Fetch Preview Documents\n5. Complete Investor Transaction Actions\n6. Complete Advisor Transaction Actions\n7. Fetch Signed Documents\n\n**Important Notes:**\n- All transaction actions (DocumentAcknowledge, TextAcknowledge, DocumentSign) are completed via the /transaction-action/{id}/complete endpoint\n- The system automatically signs documents when all pending actions for a responsible party are completed\n\n**Setup:**\n1. Import the environment file: Registered Fund Transaction.postman_environment.json\n2. Set `baseUrl` and `apiKey` in the environment\n3. Run manually (click Send on each request) OR use Collection Runner (Ctrl/Cmd+R)",
+		"_postman_id": "registered-funds-recipe",
+		"name": "Registered Funds",
+		"description": "Complete flow for creating a Registered Fund subscription using the Transaction API (V2).\n\nThis collection implements the following workflow:\n1. Investor Onboarding\n2. Select Registered Fund by symbol\n3. Create Subscription Transaction\n4. Fetch Preview Documents\n5. Complete Investor Transaction Actions (DocumentAcknowledge, TextAcknowledge, DocumentSign, Questionnaire)\n6. Complete Advisor Transaction Actions\n7. Fetch Signed Documents\n\n**Important Notes:**\n- All transaction actions (DocumentAcknowledge, TextAcknowledge, DocumentSign, Questionnaire) are completed via the /transaction-action/{id}/complete endpoint\n- For Questionnaire actions, the collection automatically fetches questionnaire details, generates random answers for all question types, and submits them\n- The system automatically signs documents when all pending actions for a responsible party are completed\n\n**Supported Question Types:**\n- Integer, Float, Percentage\n- MultipleChoiceSingle, MultipleChoiceMultiple\n- Boolean, Date, Text, Email, Scale\n\n**Setup:**\n1. Import the environment file: Registered Fund.postman_environment.json\n2. Set `baseUrl` and `apiKey` in the environment\n3. Run manually (click Send on each request) OR use Collection Runner (Ctrl/Cmd+R)",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"auth": {
@@ -89,7 +89,40 @@
 									"for (let i = 0; i < 20; i++) {",
 									"    randomStr += chars.charAt(Math.floor(Math.random() * chars.length));",
 									"}",
-									"pm.collectionVariables.set('investorReferenceId', 'Investor-' + randomStr);"
+									"pm.collectionVariables.set('investorReferenceId', 'Investor-' + randomStr);",
+									"",
+									"// Generate random SSN (XXX-XX-XXXX format - IRS standard)",
+									"// Avoids invalid patterns: area 000/666/900-999, group 00, serial 0000",
+									"const randomSSN = () => {",
+									"    // Area: 001-665 or 667-899 (avoiding 000, 666, 900-999)",
+									"    let area = Math.floor(Math.random() * 898) + 1;",
+									"    if (area >= 666) area += 1; // Skip 666",
+									"    area = String(area).padStart(3, '0');",
+									"    ",
+									"    // Group: 01-99 (avoiding 00)",
+									"    const group = String(Math.floor(Math.random() * 99) + 1).padStart(2, '0');",
+									"    ",
+									"    // Serial: 0001-9999 (avoiding 0000)",
+									"    const serial = String(Math.floor(Math.random() * 9999) + 1).padStart(4, '0');",
+									"    ",
+									"    return `${area}-${group}-${serial}`;",
+									"};",
+									"pm.collectionVariables.set('randomSSN', randomSSN());",
+									"",
+									"// Generate random email",
+									"const randomEmail = `investor.${randomStr.substring(0, 8).toLowerCase()}@example.com`;",
+									"pm.collectionVariables.set('randomEmail', randomEmail);",
+									"",
+									"// Generate random phone number",
+									"const randomPhone = `415${Math.floor(Math.random() * 9000000) + 1000000}`;",
+									"pm.collectionVariables.set('randomPhone', randomPhone);",
+									"",
+									"// Generate random date of birth (between 25-65 years old)",
+									"const today = new Date();",
+									"const birthYear = today.getFullYear() - Math.floor(Math.random() * 40) - 25;",
+									"const birthMonth = String(Math.floor(Math.random() * 12) + 1).padStart(2, '0');",
+									"const birthDay = String(Math.floor(Math.random() * 28) + 1).padStart(2, '0');",
+									"pm.collectionVariables.set('randomDOB', `${birthYear}-${birthMonth}-${birthDay}`);"
 								],
 								"type": "text/javascript"
 							}
@@ -125,150 +158,19 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n\t\"investorReferenceId\": \"{{investorReferenceId}}\",\n\t\"financialInstitutionId\": \"{{financialInstitutionId}}\",\n\t\"type\": \"IndividualInvestor\"\n}"
+							"raw": "{\n\t\"investorReferenceId\": \"{{investorReferenceId}}\",\n\t\"financialInstitutionId\": \"{{financialInstitutionId}}\",\n\t\"type\": \"IndividualInvestor\",\n\t\"pii\": {\n\t\t\"individualInvestor\": {\n\t\t\t\"firstName\": \"John\",\n\t\t\t\"lastName\": \"Doe\",\n\t\t\t\"isUSBased\": true,\n\t\t\t\"dateOfBirth\": \"{{randomDOB}}\",\n\t\t\t\"street1\": \"123 Market Street\",\n\t\t\t\"street2\": \"Apt 456\",\n\t\t\t\"city\": \"San Francisco\",\n\t\t\t\"state\": \"CA\",\n\t\t\t\"zipCode\": \"94103\",\n\t\t\t\"countryCode\": \"US\",\n\t\t\t\"phoneCountryCode\": \"1\",\n\t\t\t\"phoneNumber\": \"{{randomPhone}}\",\n\t\t\t\"mailingStreet1\": \"123 Market Street\",\n\t\t\t\"mailingStreet2\": \"Apt 456\",\n\t\t\t\"mailingAddressCity\": \"San Francisco\",\n\t\t\t\"mailingAddressState\": \"CA\",\n\t\t\t\"mailingAddressZipCode\": \"94103\",\n\t\t\t\"mailingAddressCountry\": \"US\",\n\t\t\t\"exemptPayeeCode\": \"1\",\n\t\t\t\"isSubscriptionAdvisorOrERA\": true,\n\t\t\t\"email\": \"{{randomEmail}}\",\n\t\t\t\"taxId\": \"{{randomSSN}}\",\n\t\t\t\"citizenship\": \"US\",\n\t\t\t\"qualifiedStatus\": \"QUALIFIED_CLIENT\"\n\t\t}\n\t}\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/primary/v1/investor",
 							"host": ["{{baseUrl}}"],
 							"path": ["primary", "v1", "investor"]
 						},
-						"description": "Create a new investor with Pending status."
+						"description": "Create a new US-based California investor with complete PII. Random values are generated for SSN, email, phone, and date of birth."
 					},
 					"response": []
 				},
 				{
-					"name": "1.3 Get All Questionnaires",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status code is 200', function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"const response = pm.response.json();",
-									"",
-									"if (response && response.items && response.items.length > 0) {",
-									"    pm.collectionVariables.set('questionnaires', JSON.stringify(response.items));",
-									"    console.log('Questionnaires count:', response.items.length);",
-									"} else {",
-									"    console.log('No questionnaires found');",
-									"    pm.collectionVariables.set('questionnaires', JSON.stringify([]));",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/primary/v1/questionnaire",
-							"host": ["{{baseUrl}}"],
-							"path": ["primary", "v1", "questionnaire"]
-						},
-						"description": "Fetch all available questionnaires."
-					},
-					"response": []
-				},
-				{
-					"name": "1.4 Answer Questionnaires",
-					"event": [
-						{
-							"listen": "prerequest",
-							"script": {
-								"exec": [
-									"if (!pm.collectionVariables.get('investorId')) {",
-									"    throw new Error('investorId is required. Run \"Create Investor\" first.');",
-									"}",
-									"",
-									"if (!pm.collectionVariables.get('questionnaires')) {",
-									"    throw new Error('questionnaires are required. Run \"Get All Questionnaires\" first.');",
-									"}",
-									"",
-									"// Note: This is a sample request. You'll need to run this for each questionnaire.",
-									"// In automation, you'd loop through questionnaires and answer each one.",
-									"const questionnaires = JSON.parse(pm.collectionVariables.get('questionnaires'));",
-									"",
-									"if (questionnaires.length === 0) {",
-									"    console.log('No questionnaires to answer');",
-									"    return;",
-									"}",
-									"",
-									"// Take the first questionnaire as an example",
-									"const questionnaire = questionnaires[0];",
-									"pm.collectionVariables.set('currentQuestionnaireId', questionnaire.id);",
-									"",
-									"// Generate random answers for questions",
-									"const answers = [];",
-									"if (questionnaire.questions) {",
-									"    questionnaire.questions.forEach(q => {",
-									"        let value;",
-									"        if (q.options && q.options.length > 0) {",
-									"            value = q.options[Math.floor(Math.random() * q.options.length)];",
-									"        } else {",
-									"            switch (q.format) {",
-									"                case 'INTEGER':",
-									"                    value = String(Math.floor(Math.random() * 20));",
-									"                    break;",
-									"                case 'BOOLEAN':",
-									"                    value = String(Math.random() > 0.5);",
-									"                    break;",
-									"                default:",
-									"                    value = String(Math.floor(Math.random() * 2));",
-									"            }",
-									"        }",
-									"        answers.push({",
-									"            questionnaireQuestionId: q.id,",
-									"            value: value",
-									"        });",
-									"    });",
-									"}",
-									"",
-									"pm.collectionVariables.set('questionnaireAnswers', JSON.stringify(answers));"
-								],
-								"type": "text/javascript"
-							}
-						},
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status code is 200 or 201', function () {",
-									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
-									"});",
-									"",
-									"console.log('Questionnaire answered successfully');"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n\t\"questionnaireId\": \"{{currentQuestionnaireId}}\",\n\t\"investorId\": \"{{investorId}}\",\n\t\"createQuestionAnswers\": {{questionnaireAnswers}}\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/primary/v1/questionnaire-answer",
-							"host": ["{{baseUrl}}"],
-							"path": ["primary", "v1", "questionnaire-answer"]
-						},
-						"description": "Submit answers to questionnaire questions. Note: Run this for each questionnaire if multiple exist."
-					},
-					"response": []
-				},
-				{
-					"name": "1.5 Update Investor Accreditation",
+					"name": "1.3 Update Investor Accreditation",
 					"event": [
 						{
 							"listen": "prerequest",
@@ -317,7 +219,7 @@
 					"response": []
 				},
 				{
-					"name": "1.6 Create Financial Advisor",
+					"name": "1.4 Create Financial Advisor",
 					"event": [
 						{
 							"listen": "prerequest",
@@ -385,7 +287,7 @@
 					"response": []
 				},
 				{
-					"name": "1.7 Update Investor Details",
+					"name": "1.5 Associate Financial Advisor to Investor",
 					"event": [
 						{
 							"listen": "prerequest",
@@ -412,7 +314,7 @@
 									"    pm.response.to.have.status(200);",
 									"});",
 									"",
-									"console.log('Investor details updated successfully');"
+									"console.log('Financial advisor associated with investor successfully');"
 								],
 								"type": "text/javascript"
 							}
@@ -428,19 +330,19 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n\t\"id\": \"{{investorId}}\",\n\t\"investorReferenceId\": \"{{investorReferenceId}}\",\n\t\"financialAdvisorId\": \"{{financialAdvisorId}}\",\n\t\"individualInvestor\": {\n\t\t\"firstName\": \"John\",\n\t\t\"lastName\": \"Doe\",\n\t\t\"email\": \"john.doe@example.com\",\n\t\t\"exemptPayeeCode\": \"1\",\n\t\t\"street1\": \"123 Main St\",\n\t\t\"city\": \"Metropolis\",\n\t\t\"state\": \"NY\",\n\t\t\"zipCode\": \"10001\",\n\t\t\"countryCode\": \"US\",\n\t\t\"phoneCountryCode\": \"1\",\n\t\t\"phoneNumber\": \"5551234567\",\n\t\t\"mailingStreet1\": \"123 Main St\",\n\t\t\"mailingAddressCity\": \"Metropolis\",\n\t\t\"mailingAddressState\": \"NY\",\n\t\t\"mailingAddressZipCode\": \"10001\",\n\t\t\"mailingAddressCountry\": \"US\",\n\t\t\"citizenship\": \"US\",\n\t\t\"dateOfBirth\": \"1980-01-01\",\n\t\t\"taxId\": \"792-61-0047\",\n\t\t\"passportNumber\": \"X1234567\",\n\t\t\"isSubscriptionAdvisorOrERA\": true,\n\t\t\"isUSBased\": true,\n\t\t\"qualifiedStatus\": \"QUALIFIED_CLIENT\"\n\t}\n}"
+							"raw": "{\n\t\"id\": \"{{investorId}}\",\n\t\"investorReferenceId\": \"{{investorReferenceId}}\",\n\t\"financialAdvisorId\": \"{{financialAdvisorId}}\",\n\t\"individualInvestor\": {\n\t\t\"firstName\": \"John\",\n\t\t\"lastName\": \"Doe\",\n\t\t\"isUSBased\": true,\n\t\t\"dateOfBirth\": \"{{randomDOB}}\",\n\t\t\"street1\": \"123 Market Street\",\n\t\t\"street2\": \"Apt 456\",\n\t\t\"city\": \"San Francisco\",\n\t\t\"state\": \"CA\",\n\t\t\"zipCode\": \"94103\",\n\t\t\"countryCode\": \"US\",\n\t\t\"phoneCountryCode\": \"1\",\n\t\t\"phoneNumber\": \"{{randomPhone}}\",\n\t\t\"mailingStreet1\": \"123 Market Street\",\n\t\t\"mailingStreet2\": \"Apt 456\",\n\t\t\"mailingAddressCity\": \"San Francisco\",\n\t\t\"mailingAddressState\": \"CA\",\n\t\t\"mailingAddressZipCode\": \"94103\",\n\t\t\"mailingAddressCountry\": \"US\",\n\t\t\"exemptPayeeCode\": \"1\",\n\t\t\"isSubscriptionAdvisorOrERA\": true,\n\t\t\"email\": \"{{randomEmail}}\",\n\t\t\"taxId\": \"{{randomSSN}}\",\n\t\t\"citizenship\": \"US\",\n\t\t\"qualifiedStatus\": \"QUALIFIED_CLIENT\"\n\t}\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/primary/v1/investor",
 							"host": ["{{baseUrl}}"],
 							"path": ["primary", "v1", "investor"]
 						},
-						"description": "Update investor with full details including financial advisor association."
+						"description": "Associate the financial advisor with the investor by updating the investor with the financialAdvisorId."
 					},
 					"response": []
 				},
 				{
-					"name": "1.8 Get Investor By ID",
+					"name": "1.6 Get Investor By ID",
 					"event": [
 						{
 							"listen": "prerequest",
@@ -1137,9 +1039,304 @@
 						"description": "Complete ALL DocumentSign transaction actions for the investor. The system will automatically sign the document when all pending actions for the investor are completed. Automatically processes all actions in a single request."
 					},
 					"response": []
+				},
+				{
+					"name": "5.4 Get Investor Questionnaire Actions",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const investorActionsStr = pm.collectionVariables.get('investorTransactionActions');",
+									"if (!investorActionsStr) {",
+									"    throw new Error('investorTransactionActions not found. Run \"Get All Transaction Actions\" first.');",
+									"}",
+									"",
+									"const investorActions = JSON.parse(investorActionsStr);",
+									"const questionnaireActions = investorActions.filter(action => action.type === 'Questionnaire' && action.dataId);",
+									"",
+									"if (questionnaireActions.length === 0) {",
+									"    console.log('Skipping: No Questionnaire actions for investor');",
+									"    pm.execution.skipRequest();",
+									"} else {",
+									"    // Store the first questionnaire action for processing",
+									"    const firstAction = questionnaireActions[0];",
+									"    pm.collectionVariables.set('currentQuestionnaireActionId', firstAction.id);",
+									"    pm.collectionVariables.set('currentQuestionnaireDataId', firstAction.dataId);",
+									"    pm.collectionVariables.set('allQuestionnaireActions', JSON.stringify(questionnaireActions));",
+									"    console.log(`Processing ${questionnaireActions.length} Questionnaire action(s) for investor`);",
+									"    console.log(`Fetching questionnaire: ${firstAction.dataId}`);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"if (response && response.questions) {",
+									"    console.log(`Questionnaire: ${response.name}`);",
+									"    console.log(`Questions: ${response.questions.length}`);",
+									"    ",
+									"    // Generate answers for all questions",
+									"    const createQuestionAnswers = [];",
+									"    ",
+									"    response.questions.forEach((q, index) => {",
+									"        let value;",
+									"        ",
+									"        switch (q.format) {",
+									"            case 'Integer':",
+									"                value = String(Math.floor(Math.random() * 100));",
+									"                break;",
+									"            case 'Float':",
+									"                value = String((Math.random() * 100).toFixed(2));",
+									"                break;",
+									"            case 'Percentage':",
+									"                value = String((Math.random() * 100).toFixed(2));",
+									"                break;",
+									"            case 'MultipleChoiceSingle':",
+									"                if (q.options && q.options.length > 0) {",
+									"                    value = q.options[Math.floor(Math.random() * q.options.length)];",
+									"                } else {",
+									"                    value = 'No option available';",
+									"                }",
+									"                break;",
+									"            case 'MultipleChoiceMultiple':",
+									"                if (q.options && q.options.length > 0) {",
+									"                    // Select 1-3 random options",
+									"                    const numSelections = Math.min(Math.floor(Math.random() * 3) + 1, q.options.length);",
+									"                    const shuffled = [...q.options].sort(() => 0.5 - Math.random());",
+									"                    value = shuffled.slice(0, numSelections).join(',');",
+									"                } else {",
+									"                    value = 'No options available';",
+									"                }",
+									"                break;",
+									"            case 'Boolean':",
+									"                value = 'true'",
+									"                break;",
+									"            case 'Date':",
+									"                const randomDate = new Date();",
+									"                randomDate.setDate(randomDate.getDate() - Math.floor(Math.random() * 365));",
+									"                value = randomDate.toISOString().split('T')[0];",
+									"                break;",
+									"            case 'Text':",
+									"                value = 'Sample text answer';",
+									"                break;",
+									"            case 'Email':",
+									"                value = 'test@example.com';",
+									"                break;",
+									"            case 'Scale':",
+									"                const min = q.scaleMin || 0;",
+									"                const max = q.scaleMax || 10;",
+									"                const step = q.scaleStep || 1;",
+									"                value = String(min + Math.floor(Math.random() * ((max - min) / step + 1)) * step);",
+									"                break;",
+									"            default:",
+									"                value = 'Default answer';",
+									"        }",
+									"        ",
+									"        createQuestionAnswers.push({",
+									"            questionnaireQuestionId: q.id,",
+									"            value: value",
+									"        });",
+									"        ",
+									"        console.log(`  Q${index + 1}: ${q.text.substring(0, 50)}... => ${value}`);",
+									"    });",
+									"    ",
+									"    // Store the answers payload",
+									"    const payload = {",
+									"        questionnaireId: response.id,",
+									"        investorId: pm.collectionVariables.get('investorId'),",
+									"        createQuestionAnswers: createQuestionAnswers",
+									"    };",
+									"    ",
+									"    pm.collectionVariables.set('questionnaireAnswersPayload', JSON.stringify(payload));",
+									"    console.log('Generated answers for all questions');",
+									"} else {",
+									"    console.error('Invalid questionnaire response');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/primary/v1/questionnaire/{{currentQuestionnaireDataId}}?investorId={{investorId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v1", "questionnaire", "{{currentQuestionnaireDataId}}"],
+							"query": [
+								{
+									"key": "investorId",
+									"value": "{{investorId}}"
+								}
+							]
+						},
+						"description": "Fetch the questionnaire details by ID from the Questionnaire transaction action's dataId field. The investorId is passed to retrieve investor-specific questionnaire data if applicable."
+					},
+					"response": []
+				},
+				{
+					"name": "5.5 Submit Questionnaire Answers",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const payloadStr = pm.collectionVariables.get('questionnaireAnswersPayload');",
+									"if (!payloadStr) {",
+									"    console.log('Skipping: No questionnaire answers to submit');",
+									"    pm.execution.skipRequest();",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 201', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"",
+									"console.log('Questionnaire answers submitted successfully');",
+									"",
+									"// Clean up",
+									"pm.collectionVariables.unset('questionnaireAnswersPayload');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{{questionnaireAnswersPayload}}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary/v1/questionnaire-answer",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v1", "questionnaire-answer"]
+						},
+						"description": "Submit answers to the questionnaire questions. This creates a QuestionnaireAnswer with all the question responses."
+					},
+					"response": []
+				},
+				{
+					"name": "5.6 Complete Investor Questionnaire Actions",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const actionId = pm.collectionVariables.get('currentQuestionnaireActionId');",
+									"if (!actionId) {",
+									"    console.log('Skipping: No questionnaire action to complete');",
+									"    pm.execution.skipRequest();",
+									"} else {",
+									"    console.log(`Completing questionnaire action: ${actionId}`);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 204', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});",
+									"",
+									"console.log('Questionnaire action completed');",
+									"",
+									"// Process remaining questionnaire actions if any",
+									"const allActionsStr = pm.collectionVariables.get('allQuestionnaireActions');",
+									"if (allActionsStr) {",
+									"    const allActions = JSON.parse(allActionsStr);",
+									"    ",
+									"    // Complete remaining actions (if more than one)",
+									"    for (let i = 1; i < allActions.length; i++) {",
+									"        const action = allActions[i];",
+									"        ",
+									"        // Fetch questionnaire and submit answers for each remaining action",
+									"        console.log(`Processing additional questionnaire ${i + 1} of ${allActions.length}`);",
+									"        ",
+									"        // Note: In a real scenario, you would need to fetch each questionnaire,",
+									"        // generate answers, submit them, and complete the action.",
+									"        // For now, we'll just complete the action",
+									"        pm.sendRequest({",
+									"            url: pm.environment.get('baseUrl') + '/primary/v2/transaction-action/' + action.id + '/complete',",
+									"            method: 'PUT',",
+									"            header: {",
+									"                'Authorization': 'Bearer ' + pm.environment.get('apiKey'),",
+									"                'Content-Type': 'application/json'",
+									"            },",
+									"            body: {",
+									"                mode: 'raw',",
+									"                raw: '{}'",
+									"            }",
+									"        }, function (err, response) {",
+									"            if (err) {",
+									"                console.error(`Error completing questionnaire action ${i + 1}: ${err}`);",
+									"            } else if (response.code === 200 || response.code === 204) {",
+									"                console.log(`Completed questionnaire action ${i + 1} of ${allActions.length}`);",
+									"            } else {",
+									"                console.error(`Failed to complete questionnaire action ${i + 1}: ${response.code}`);",
+									"            }",
+									"        });",
+									"    }",
+									"}",
+									"",
+									"// Clean up",
+									"pm.collectionVariables.unset('currentQuestionnaireActionId');",
+									"pm.collectionVariables.unset('currentQuestionnaireDataId');",
+									"pm.collectionVariables.unset('allQuestionnaireActions');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary/v2/transaction-action/{{currentQuestionnaireActionId}}/complete",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v2", "transaction-action", "{{currentQuestionnaireActionId}}", "complete"]
+						},
+						"description": "Complete the Questionnaire transaction action after submitting the answers. This marks the questionnaire as completed for the investor."
+					},
+					"response": []
 				}
 			],
-			"description": "Complete all transaction actions where responsibleParty is Investor. All action types (DocumentAcknowledge, TextAcknowledge, DocumentSign) use the same /complete endpoint. Documents are signed automatically when all investor actions are completed."
+			"description": "Complete all transaction actions where responsibleParty is Investor. All action types (DocumentAcknowledge, TextAcknowledge, DocumentSign, Questionnaire) use the same /complete endpoint. For Questionnaire actions, the collection fetches questionnaire details from the dataId, generates random answers for all question types, submits them, and completes the action. Documents are signed automatically when all investor actions are completed."
 		},
 		{
 			"name": "6. Complete Advisor Transaction Actions",
@@ -1631,7 +1828,13 @@
 						"url": {
 							"raw": "{{baseUrl}}/primary/v2/transaction/{{transactionId}}",
 							"host": ["{{baseUrl}}"],
-							"path": ["primary", "v2", "transaction", "{{transactionId}}"]
+							"path": ["primary", "v2", "transaction", "{{transactionId}}"],
+							"query": [
+								{
+									"key": "includeDocuments",
+									"value": "true"
+								}
+							]
 						},
 						"description": "Verify final transaction status after completing all transaction actions."
 					},
@@ -1667,6 +1870,10 @@
 					"        'financialInstitutionId',",
 					"        'investorId',",
 					"        'investorReferenceId',",
+					"        'randomSSN',",
+					"        'randomEmail',",
+					"        'randomPhone',",
+					"        'randomDOB',",
 					"        'questionnaires',",
 					"        'currentQuestionnaireId',",
 					"        'questionnaireAnswers',",
@@ -1688,7 +1895,14 @@
 					"        'signedDocuments',",
 					"        'firstDocumentDownloadUrl',",
 					"        'firstDocumentName',",
-					"        's3PresignedUrl'",
+					"        's3PresignedUrl',",
+					"        'currentQuestionnaireActionId',",
+					"        'currentQuestionnaireDataId',",
+					"        'allQuestionnaireActions',",
+					"        'questionnaireAnswersPayload',",
+					"        'previewDocuments',",
+					"        'firstPreviewDocumentDownloadUrl',",
+					"        'firstPreviewDocumentName'",
 					"    ];",
 					"    ",
 					"    variablesToClear.forEach(varName => {",

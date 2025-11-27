@@ -228,7 +228,7 @@ public class InvestorSubscriptionTransactionRecipes {
 	private static Transaction getTransactionById(UUID transactionId) {
 		try {
 			log.info("Get transaction by id: {}", transactionId);
-			return transactionApi.getTransactionById(transactionId);
+			return transactionApi.getTransactionById(transactionId, true);
 		} catch (ApiException e) {
 			throw new RuntimeException(e);
 		}
