@@ -24,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.text.RandomStringGenerator;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
@@ -70,6 +71,13 @@ public class InvestorRecipes {
 
 		// Step 2: Create an investor - Pending status
 		String investorReferenceId = generateInvestorReferenceId();
+
+		// Generate random investor data
+		String randomSSN = generateRandomSSN();
+		String randomEmail = generateRandomEmail();
+		String randomPhone = generateRandomPhone();
+		LocalDate randomDOB = generateRandomDateOfBirth();
+
 		Investor investor = createInvestor(
 				CreateInvestor.builder()
 						.investorReferenceId(investorReferenceId)
@@ -82,10 +90,15 @@ public class InvestorRecipes {
 		List<Questionnaire> questionnaires = getAllQuestionnaires();
 		log.info("Questionnaires: {}", questionnaires);
 
-		// Step 4: Answer all questions in questionnaires,
-		// here we pick one at random for illustration purposes
+		// Step 4: Answer all questions in questionnaires
 		if (questionnaires != null && !questionnaires.isEmpty()) {
 			for (Questionnaire questionnaire : questionnaires) {
+				// Only process questionnaires with partnerName != null
+				if (questionnaire.getPartnerName() == null) {
+					log.info("Skipping questionnaire {} - partnerName is null", questionnaire.getId());
+					continue;
+				}
+
 				log.info("Questionnaire: {}", questionnaire);
 
 				if (questionnaire.getQuestions() == null || questionnaire.getQuestions().isEmpty()) {
@@ -96,27 +109,48 @@ public class InvestorRecipes {
 				List<CreateQuestionnaireQuestionAnswer> createQuestionAnswers = questionnaire.getQuestions()
 						.stream()
 						.map(question -> {
-							if (question.getOptions().isEmpty()) {
-								return switch (question.getFormat()) {
-									case INTEGER -> CreateQuestionnaireQuestionAnswer.builder()
-											.questionnaireQuestionId(question.getId())
-											.value(String.valueOf(random.nextInt(20)))
-											.build();
-									case BOOLEAN -> CreateQuestionnaireQuestionAnswer.builder()
-											.questionnaireQuestionId(question.getId())
-											.value(String.valueOf(random.nextBoolean()))
-											.build();
-									default -> CreateQuestionnaireQuestionAnswer.builder()
-											.questionnaireQuestionId(question.getId())
-											.value(String.valueOf(random.nextInt(2)))
-											.build();
-								};
-							} else {
-								return CreateQuestionnaireQuestionAnswer.builder()
-										.questionnaireQuestionId(question.getId())
-										.value(question.getOptions().get(random.nextInt(question.getOptions().size())))
-										.build();
+							String value;
+							switch (question.getFormat()) {
+								case INTEGER -> value = String.valueOf(random.nextInt(100));
+								case FLOAT -> value = String.format("%.2f", random.nextDouble() * 100);
+								case PERCENTAGE -> value = String.format("%.2f", random.nextDouble() * 100);
+								case MULTIPLE_CHOICE_SINGLE -> {
+									if (question.getOptions() != null && !question.getOptions().isEmpty()) {
+										value = question.getOptions().get(random.nextInt(question.getOptions().size()));
+									} else {
+										value = "No option available";
+									}
+								}
+								case MULTIPLE_CHOICE_MULTIPLE -> {
+									if (question.getOptions() != null && !question.getOptions().isEmpty()) {
+										// Select 1-3 random options
+										int numSelections = Math.min(random.nextInt(3) + 1, question.getOptions().size());
+										List<String> shuffled = new ArrayList<>(question.getOptions());
+										java.util.Collections.shuffle(shuffled, random);
+										value = String.join(",", shuffled.subList(0, numSelections));
+									} else {
+										value = "No options available";
+									}
+								}
+								case BOOLEAN -> value = "true";
+								case DATE -> {
+									// Random date within the last year
+									LocalDate randomDate = LocalDate.now().minusDays(random.nextInt(365));
+									value = randomDate.toString();
+								}
+								case TEXT -> value = "Sample text answer";
+								case EMAIL -> value = "test@example.com";
+								case SCALE -> {
+									// Assuming default scale 0-10 if not specified
+									int scaleValue = random.nextInt(11);
+									value = String.valueOf(scaleValue);
+								}
+								default -> value = "Default answer";
 							}
+							return CreateQuestionnaireQuestionAnswer.builder()
+									.questionnaireQuestionId(question.getId())
+									.value(value)
+									.build();
 						})
 						.toList();
 				CreateQuestionnaireAnswer createQuestionnaireAnswer = CreateQuestionnaireAnswer.builder()
@@ -169,26 +203,27 @@ public class InvestorRecipes {
 						ModifyIndividualInvestor.builder()
 								.firstName("John")
 								.lastName("Doe")
-								.email("john.doe@example.com")
-								.exemptPayeeCode("1")
-								.street1("123 Main St")
-								.city("Metropolis")
-								.state("NY")
-								.zipCode("10001")
+								.isUSBased(true)
+								.dateOfBirth(randomDOB)
+								.street1("123 Market Street")
+								.street2("Apt 456")
+								.city("San Francisco")
+								.state("CA")
+								.zipCode("94103")
 								.countryCode("US")
 								.phoneCountryCode("1")
-								.phoneNumber("5551234567")
-								.mailingStreet1("123 Main St")
-								.mailingAddressCity("Metropolis")
-								.mailingAddressState("NY")
-								.mailingAddressZipCode("10001")
+								.phoneNumber(randomPhone)
+								.mailingStreet1("123 Market Street")
+								.mailingStreet2("Apt 456")
+								.mailingAddressCity("San Francisco")
+								.mailingAddressState("CA")
+								.mailingAddressZipCode("94103")
 								.mailingAddressCountry("US")
-								.citizenship("US")
-								.dateOfBirth(LocalDate.parse("1980-01-01"))
-								.taxId("792-61-0047")
-								.passportNumber("X1234567")
+								.exemptPayeeCode("1")
 								.isSubscriptionAdvisorOrERA(true)
-								.isUSBased(true)
+								.email(randomEmail)
+								.taxId(randomSSN)
+								.citizenship("US")
 								.qualifiedStatus(QUALIFIED_CLIENT)
 								.build()
 				)
@@ -283,5 +318,52 @@ public class InvestorRecipes {
 		} catch (ApiException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	/**
+	 * Generate a random SSN in XXX-XX-XXXX format (IRS standard).
+	 * Avoids invalid patterns: area 000/666/900-999, group 00, serial 0000
+	 */
+	private static String generateRandomSSN() {
+		// Area: 001-665 or 667-899 (avoiding 000, 666, 900-999)
+		int area = random.nextInt(898) + 1;
+		if (area >= 666) area += 1; // Skip 666
+		String areaStr = String.format("%03d", area);
+
+		// Group: 01-99 (avoiding 00)
+		String group = String.format("%02d", random.nextInt(99) + 1);
+
+		// Serial: 0001-9999 (avoiding 0000)
+		String serial = String.format("%04d", random.nextInt(9999) + 1);
+
+		return areaStr + "-" + group + "-" + serial;
+	}
+
+	/**
+	 * Generate a random email address for the investor
+	 */
+	private static String generateRandomEmail() {
+		RandomStringGenerator generator = new RandomStringGenerator.Builder()
+				.withinRange('a', 'z')
+				.filteredBy(LETTERS)
+				.build();
+		return "investor." + generator.generate(8) + "@example.com";
+	}
+
+	/**
+	 * Generate a random US phone number in the format 415XXXXXXX
+	 */
+	private static String generateRandomPhone() {
+		return "415" + randomNumeric.generate(7);
+	}
+
+	/**
+	 * Generate a random date of birth (between 25-65 years old)
+	 */
+	private static LocalDate generateRandomDateOfBirth() {
+		LocalDate today = LocalDate.now();
+		int yearsOld = random.nextInt(40) + 25; // 25-65 years old
+		int daysOffset = random.nextInt(365); // Random day within that year
+		return today.minusYears(yearsOld).minusDays(daysOffset);
 	}
 }

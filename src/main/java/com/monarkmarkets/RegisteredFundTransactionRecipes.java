@@ -2,14 +2,20 @@ package com.monarkmarkets;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.monarkmarkets.primary.client.api.DocumentApi;
+import com.monarkmarkets.primary.client.api.QuestionnaireAnswerApi;
+import com.monarkmarkets.primary.client.api.QuestionnaireApi;
 import com.monarkmarkets.primary.client.api.RegisteredFundApi;
 import com.monarkmarkets.primary.client.api.TransactionActionApi;
 import com.monarkmarkets.primary.client.api.TransactionApi;
 import com.monarkmarkets.primary.client.invoker.ApiException;
+import com.monarkmarkets.primary.client.model.CreateQuestionnaireAnswer;
+import com.monarkmarkets.primary.client.model.CreateQuestionnaireQuestionAnswer;
 import com.monarkmarkets.primary.client.model.CreateTransaction;
 import com.monarkmarkets.primary.client.model.Document;
 import com.monarkmarkets.primary.client.model.DocumentApiResponse;
 import com.monarkmarkets.primary.client.model.Pagination;
+import com.monarkmarkets.primary.client.model.Questionnaire;
+import com.monarkmarkets.primary.client.model.QuestionnaireAnswer;
 import com.monarkmarkets.primary.client.model.RegisteredFund;
 import com.monarkmarkets.primary.client.model.RegisteredFundApiResponse;
 import com.monarkmarkets.primary.client.model.SignDocument;
@@ -26,18 +32,24 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
 
 @Slf4j
 public class RegisteredFundTransactionRecipes {
 
+	private static final Random random = new Random();
+
 	private static final RegisteredFundApi registeredFundApi = ApiFactory.getRegisteredFundApi();
 	private static final TransactionApi transactionApi = ApiFactory.getTransactionApi();
 	private static final TransactionActionApi transactionActionApi = ApiFactory.getTransactionActionApi();
 	private static final DocumentApi documentApi = ApiFactory.getDocumentApi();
+	private static final QuestionnaireApi questionnaireApi = ApiFactory.getQuestionnaireApi();
+	private static final QuestionnaireAnswerApi questionnaireAnswerApi = ApiFactory.getQuestionnaireAnswerApi();
 
 	/**
 	 * Registered Fund Subscription Creation using Transaction API
@@ -93,7 +105,90 @@ public class RegisteredFundTransactionRecipes {
 			completeTransactionAction(action.getId());
 		});
 
-		// Step 8: Complete Transaction Actions - Sign Documents
+		// Step 8: Complete Transaction Actions - Questionnaire
+		List<TransactionAction> questionnaireActions = transactionActions.stream()
+				.filter(action -> action.getType() == TransactionAction.TypeEnum.QUESTIONNAIRE)
+				.toList();
+		for (TransactionAction questionnaireAction : questionnaireActions) {
+			if (questionnaireAction.getDataId() == null) {
+				log.warn("Questionnaire action {} has no dataId, skipping", questionnaireAction.getId());
+				continue;
+			}
+
+			// Fetch questionnaire details using dataId
+			UUID questionnaireId = UUID.fromString(questionnaireAction.getDataId());
+			Questionnaire questionnaire = getQuestionnaireById(questionnaireId, investorId);
+			log.info("Processing questionnaire: {} (ID: {})", questionnaire.getName(), questionnaire.getId());
+
+			if (questionnaire.getQuestions() == null || questionnaire.getQuestions().isEmpty()) {
+				log.info("No questions found for questionnaire: {}", questionnaire.getId());
+				continue;
+			}
+
+			// Generate answers for all questions
+			List<CreateQuestionnaireQuestionAnswer> createQuestionAnswers = questionnaire.getQuestions()
+					.stream()
+					.map(question -> {
+						String value;
+						switch (question.getFormat()) {
+							case INTEGER -> value = String.valueOf(random.nextInt(100));
+							case FLOAT -> value = String.format("%.2f", random.nextDouble() * 100);
+							case PERCENTAGE -> value = String.format("%.2f", random.nextDouble() * 100);
+							case MULTIPLE_CHOICE_SINGLE -> {
+								if (question.getOptions() != null && !question.getOptions().isEmpty()) {
+									value = question.getOptions().get(random.nextInt(question.getOptions().size()));
+								} else {
+									value = "No option available";
+								}
+							}
+							case MULTIPLE_CHOICE_MULTIPLE -> {
+								if (question.getOptions() != null && !question.getOptions().isEmpty()) {
+									// Select 1-3 random options
+									int numSelections = Math.min(random.nextInt(3) + 1, question.getOptions().size());
+									List<String> shuffled = new ArrayList<>(question.getOptions());
+									java.util.Collections.shuffle(shuffled, random);
+									value = String.join(",", shuffled.subList(0, numSelections));
+								} else {
+									value = "No options available";
+								}
+							}
+							case BOOLEAN -> value = "true";
+							case DATE -> {
+								// Random date within the last year
+								LocalDate randomDate = LocalDate.now().minusDays(random.nextInt(365));
+								value = randomDate.toString();
+							}
+							case TEXT -> value = "Sample text answer";
+							case EMAIL -> value = "test@example.com";
+							case SCALE -> {
+								// Assuming default scale 0-10 if not specified
+								int scaleValue = random.nextInt(11);
+								value = String.valueOf(scaleValue);
+							}
+							default -> value = "Default answer";
+						}
+						return CreateQuestionnaireQuestionAnswer.builder()
+								.questionnaireQuestionId(question.getId())
+								.value(value)
+								.build();
+					})
+					.toList();
+
+			// Submit questionnaire answers
+			CreateQuestionnaireAnswer createQuestionnaireAnswer = CreateQuestionnaireAnswer.builder()
+					.questionnaireId(questionnaire.getId())
+					.investorId(investorId)
+					.createQuestionAnswers(createQuestionAnswers)
+					.build();
+
+			QuestionnaireAnswer questionnaireAnswer = createQuestionnaireAnswer(createQuestionnaireAnswer);
+			log.info("Submitted questionnaire answers: {}", questionnaireAnswer.getId());
+
+			// Complete the questionnaire action
+			completeTransactionAction(questionnaireAction.getId());
+		}
+
+		// Step 9: Complete Transaction Actions - Sign Documents
 		List<TransactionAction> requireSigningActions = transactionActions.stream()
 				.filter(action -> action.getType() == TransactionAction.TypeEnum.DOCUMENT_SIGN)
 				.toList();
@@ -101,19 +196,19 @@ public class RegisteredFundTransactionRecipes {
 			completeTransactionAction(action.getId());
 		});
 
-		// Step 9: Fetch final transaction to verify completion
+		// Step 10: Fetch final transaction to verify completion
 		// Note: Completing all TransactionActions automatically triggers investor/advisor signing
 		Transaction finalTransaction = getTransactionById(transaction.getId());
 		log.info("Final Transaction status: {}", finalTransaction.getStatus());
 
-		// Step 10: Fetch signed documents using V2 Document API
+		// Step 11: Fetch signed documents using V2 Document API
 		List<Document> signedDocuments = getSignedDocumentsByTransactionId(transaction.getId());
 		log.info("Retrieved {} signed document(s)", signedDocuments.size());
 		signedDocuments.forEach(doc -> {
 			log.info("  Document: {} (Type: {}, ID: {})", doc.getName(), doc.getType(), doc.getId());
 		});
 
-		// Step 11: Download all signed documents
+		// Step 12: Download all signed documents
 		signedDocuments.forEach(doc -> {
 			try {
 				File downloadedFile = downloadDocument(doc);
@@ -242,7 +337,7 @@ public class RegisteredFundTransactionRecipes {
 	private static Transaction getTransactionById(UUID transactionId) {
 		try {
 			log.info("Get transaction by id: {}", transactionId);
-			return transactionApi.getTransactionById(transactionId);
+			return transactionApi.getTransactionById(transactionId, true);
 		} catch (ApiException e) {
 			throw new RuntimeException(e);
 		}
@@ -391,6 +486,24 @@ public class RegisteredFundTransactionRecipes {
 		} catch (Exception e) {
 			log.warn("Failed to extract filename from S3 URL: {}", e.getMessage());
 			return null;
+		}
+	}
+
+	private static Questionnaire getQuestionnaireById(UUID questionnaireId, UUID investorId) {
+		try {
+			log.info("Get questionnaire by id: {} for investor: {}", questionnaireId, investorId);
+			return questionnaireApi.getQuestionnaireById(questionnaireId, investorId);
+		} catch (ApiException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	private static QuestionnaireAnswer createQuestionnaireAnswer(CreateQuestionnaireAnswer createQuestionnaireAnswer) {
+		try {
+			log.info("Create questionnaire answer: {}", createQuestionnaireAnswer);
+			return questionnaireAnswerApi.createQuestionnaireAnswer(createQuestionnaireAnswer);
+		} catch (ApiException e) {
+			throw new RuntimeException(e);
 		}
 	}
 }
