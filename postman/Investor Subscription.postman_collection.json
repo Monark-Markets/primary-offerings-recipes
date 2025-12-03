@@ -1,0 +1,2148 @@
+{
+	"info": {
+		"_postman_id": "investor-subscription-recipe",
+		"name": "Investor Subscription",
+		"description": "Complete flow for creating an Investor Subscription (PreIPO Company SPV) using the Transaction API (V2).\n\nThis collection implements the following workflow:\n1. Investor Onboarding\n2. Select PreIPO Company SPV (auto-selects eligible SPV in PRIMARY_FUNDRAISE stage)\n3. Create Subscription Transaction (with automatic amount calculation based on SPV constraints)\n4. Fetch Preview Documents\n5. Complete Investor Transaction Actions (DocumentAcknowledge, TextAcknowledge, DocumentSign, Questionnaire)\n6. Complete Advisor Transaction Actions\n7. Fetch Signed Documents\n\n**Important Notes:**\n- All transaction actions (DocumentAcknowledge, TextAcknowledge, DocumentSign, Questionnaire) are completed via the /transaction-action/{id}/complete endpoint\n- For Questionnaire actions, the collection automatically fetches questionnaire details, generates random answers for all question types, and submits them\n- The system automatically signs documents when all pending actions for a responsible party are completed\n- Subscription amount is automatically calculated based on SPV constraints (minCommitmentAmount, remainingDollarAllocation)\n\n**Supported Question Types:**\n- Integer, Float, Percentage\n- MultipleChoiceSingle, MultipleChoiceMultiple\n- Boolean, Date, Text, Email, Scale\n\n**SPV Selection Criteria:**\n- MonarkStage = PRIMARY_FUNDRAISE\n- isApproved = true\n- remainingShareAllocation > 0\n- remainingDollarAllocation > 0\n- numberOfSeatsRemaining > 0\n\n**Setup:**\n1. Import the environment file: Investor Subscription.postman_environment.json\n2. Set `baseUrl` and `apiKey` in the environment\n3. Run manually (click Send on each request) OR use Collection Runner (Ctrl/Cmd+R)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{apiKey}}",
+				"type": "string"
+			}
+		]
+	},
+	"item": [
+		{
+			"name": "1. Investor Onboarding",
+			"item": [
+				{
+					"name": "1.1 Get All Financial Institutions",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"if (response && response.items && response.items.length > 0) {",
+									"    // Find default financial institution",
+									"    const defaultFI = response.items.find(fi => fi.isDefault === true);",
+									"    ",
+									"    if (defaultFI) {",
+									"        pm.collectionVariables.set('financialInstitutionId', defaultFI.id);",
+									"        console.log('='.repeat(50));",
+									"        console.log('FINANCIAL INSTITUTION');",
+									"        console.log('='.repeat(50));",
+									"        console.log('Financial Institution ID:', defaultFI.id);",
+									"        console.log('Name:', defaultFI.name);",
+									"        console.log('Is Default:', defaultFI.isDefault);",
+									"        console.log('='.repeat(50));",
+									"    } else {",
+									"        console.error('No default financial institution found');",
+									"    }",
+									"} else {",
+									"    console.error('No financial institutions returned');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/primary/v1/financial-institution?page=1&pageSize=100",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v1", "financial-institution"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "100"
+								}
+							]
+						},
+						"description": "Fetch all financial institutions and select the default one."
+					},
+					"response": []
+				},
+				{
+					"name": "1.2 Create Investor",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.collectionVariables.get('financialInstitutionId')) {",
+									"    throw new Error('financialInstitutionId is required. Run \"Get All Financial Institutions\" first.');",
+									"}",
+									"",
+									"// Generate random investor reference ID",
+									"const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';",
+									"let randomStr = '';",
+									"for (let i = 0; i < 20; i++) {",
+									"    randomStr += chars.charAt(Math.floor(Math.random() * chars.length));",
+									"}",
+									"pm.collectionVariables.set('investorReferenceId', 'Investor-' + randomStr);",
+									"",
+									"// Generate random SSN (XXX-XX-XXXX format - IRS standard)",
+									"// Avoids invalid patterns: area 000/666/900-999, group 00, serial 0000",
+									"const randomSSN = () => {",
+									"    // Area: 001-665 or 667-899 (avoiding 000, 666, 900-999)",
+									"    let area = Math.floor(Math.random() * 898) + 1;",
+									"    if (area >= 666) area += 1; // Skip 666",
+									"    area = String(area).padStart(3, '0');",
+									"    ",
+									"    // Group: 01-99 (avoiding 00)",
+									"    const group = String(Math.floor(Math.random() * 99) + 1).padStart(2, '0');",
+									"    ",
+									"    // Serial: 0001-9999 (avoiding 0000)",
+									"    const serial = String(Math.floor(Math.random() * 9999) + 1).padStart(4, '0');",
+									"    ",
+									"    return `${area}-${group}-${serial}`;",
+									"};",
+									"pm.collectionVariables.set('randomSSN', randomSSN());",
+									"",
+									"// Generate random email",
+									"const randomEmail = `investor.${randomStr.substring(0, 8).toLowerCase()}@example.com`;",
+									"pm.collectionVariables.set('randomEmail', randomEmail);",
+									"",
+									"// Generate random phone number",
+									"const randomPhone = `415${Math.floor(Math.random() * 9000000) + 1000000}`;",
+									"pm.collectionVariables.set('randomPhone', randomPhone);",
+									"",
+									"// Generate random date of birth (between 25-65 years old)",
+									"const today = new Date();",
+									"const birthYear = today.getFullYear() - Math.floor(Math.random() * 40) - 25;",
+									"const birthMonth = String(Math.floor(Math.random() * 12) + 1).padStart(2, '0');",
+									"const birthDay = String(Math.floor(Math.random() * 28) + 1).padStart(2, '0');",
+									"pm.collectionVariables.set('randomDOB', `${birthYear}-${birthMonth}-${birthDay}`);"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 201', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"if (response && response.id) {",
+									"    pm.collectionVariables.set('investorId', response.id);",
+									"    console.log('='.repeat(50));",
+									"    console.log('INVESTOR CREATED');",
+									"    console.log('='.repeat(50));",
+									"    console.log('Investor ID:', response.id);",
+									"    console.log('Reference ID:', pm.collectionVariables.get('investorReferenceId'));",
+									"    console.log('Email:', pm.collectionVariables.get('randomEmail'));",
+									"    console.log('='.repeat(50));",
+									"} else {",
+									"    console.error('No investor ID in response');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"investorReferenceId\": \"{{investorReferenceId}}\",\n\t\"financialInstitutionId\": \"{{financialInstitutionId}}\",\n\t\"type\": \"IndividualInvestor\",\n\t\"pii\": {\n\t\t\"individualInvestor\": {\n\t\t\t\"firstName\": \"John\",\n\t\t\t\"lastName\": \"Doe\",\n\t\t\t\"isUSBased\": true,\n\t\t\t\"dateOfBirth\": \"{{randomDOB}}\",\n\t\t\t\"street1\": \"123 Market Street\",\n\t\t\t\"street2\": \"Apt 456\",\n\t\t\t\"city\": \"San Francisco\",\n\t\t\t\"state\": \"CA\",\n\t\t\t\"zipCode\": \"94103\",\n\t\t\t\"countryCode\": \"US\",\n\t\t\t\"phoneCountryCode\": \"1\",\n\t\t\t\"phoneNumber\": \"{{randomPhone}}\",\n\t\t\t\"mailingStreet1\": \"123 Market Street\",\n\t\t\t\"mailingStreet2\": \"Apt 456\",\n\t\t\t\"mailingAddressCity\": \"San Francisco\",\n\t\t\t\"mailingAddressState\": \"CA\",\n\t\t\t\"mailingAddressZipCode\": \"94103\",\n\t\t\t\"mailingAddressCountry\": \"US\",\n\t\t\t\"exemptPayeeCode\": \"1\",\n\t\t\t\"isSubscriptionAdvisorOrERA\": true,\n\t\t\t\"email\": \"{{randomEmail}}\",\n\t\t\t\"taxId\": \"{{randomSSN}}\",\n\t\t\t\"citizenship\": \"US\",\n\t\t\t\"qualifiedStatus\": \"QUALIFIED_CLIENT\"\n\t\t}\n\t}\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary/v1/investor",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v1", "investor"]
+						},
+						"description": "Create a new US-based California investor with complete PII. Random values are generated for SSN, email, phone, and date of birth."
+					},
+					"response": []
+				},
+				{
+					"name": "1.3 Update Investor Accreditation",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.collectionVariables.get('investorId')) {",
+									"    throw new Error('investorId is required. Run \"Create Investor\" first.');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 204', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});",
+									"",
+									"console.log('='.repeat(50));",
+									"console.log('ACCREDITATION UPDATED');",
+									"console.log('='.repeat(50));",
+									"console.log('Investor ID:', pm.collectionVariables.get('investorId'));",
+									"console.log('Accreditation Status: KNOWLEDGEABLE_EMPLOYEE');",
+									"console.log('='.repeat(50));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"investorId\": \"{{investorId}}\",\n\t\"accreditationStatus\": \"KNOWLEDGEABLE_EMPLOYEE\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary/v1/investor/accreditation",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v1", "investor", "accreditation"]
+						},
+						"description": "Update investor accreditation status."
+					},
+					"response": []
+				},
+				{
+					"name": "1.4 Create Financial Advisor",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.collectionVariables.get('financialInstitutionId')) {",
+									"    throw new Error('financialInstitutionId is required.');",
+									"}",
+									"",
+									"// Generate random CRD and IARD numbers",
+									"const randomDigits = (len) => {",
+									"    let str = '';",
+									"    for (let i = 0; i < len; i++) {",
+									"        str += Math.floor(Math.random() * 10);",
+									"    }",
+									"    return str;",
+									"};",
+									"",
+									"pm.collectionVariables.set('crdNumber', randomDigits(8));",
+									"pm.collectionVariables.set('iardNumber', randomDigits(8));"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 201', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"if (response && response.id) {",
+									"    pm.collectionVariables.set('financialAdvisorId', response.id);",
+									"    console.log('='.repeat(50));",
+									"    console.log('FINANCIAL ADVISOR CREATED');",
+									"    console.log('='.repeat(50));",
+									"    console.log('Financial Advisor ID:', response.id);",
+									"    console.log('Name:', response.firstName, response.lastName);",
+									"    console.log('CRD Number:', pm.collectionVariables.get('crdNumber'));",
+									"    console.log('='.repeat(50));",
+									"} else {",
+									"    console.error('No financial advisor ID in response');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"financialInstitutionId\": \"{{financialInstitutionId}}\",\n\t\"crdNumber\": \"{{crdNumber}}\",\n\t\"iardNumber\": \"{{iardNumber}}\",\n\t\"firstName\": \"Jane\",\n\t\"lastName\": \"Advisor\",\n\t\"mailingAddress\": \"123 Main St\",\n\t\"mailingCity\": \"New York\",\n\t\"mailingState\": \"NY\",\n\t\"mailingZipCode\": \"10001\",\n\t\"mailingCountryCode\": \"US\",\n\t\"branchNumber\": \"001\",\n\t\"phoneCountryCode\": \"1\",\n\t\"phoneNumber\": \"1234567890\",\n\t\"phoneExtension\": \"123\",\n\t\"emailAddress\": \"johnadvisor@example.com\",\n\t\"fax\": \"123-456-7890\",\n\t\"prefix\": \"Mrs\",\n\t\"broker\": \"ExampleBroker\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary/v1/financial-advisor",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v1", "financial-advisor"]
+						},
+						"description": "Create a financial advisor for the investor."
+					},
+					"response": []
+				},
+				{
+					"name": "1.5 Associate Financial Advisor to Investor",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.collectionVariables.get('investorId')) {",
+									"    throw new Error('investorId is required.');",
+									"}",
+									"if (!pm.collectionVariables.get('investorReferenceId')) {",
+									"    throw new Error('investorReferenceId is required.');",
+									"}",
+									"if (!pm.collectionVariables.get('financialAdvisorId')) {",
+									"    throw new Error('financialAdvisorId is required. Run \"Create Financial Advisor\" first.');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"console.log('='.repeat(50));",
+									"console.log('FINANCIAL ADVISOR ASSOCIATED');",
+									"console.log('='.repeat(50));",
+									"console.log('Investor ID:', pm.collectionVariables.get('investorId'));",
+									"console.log('Financial Advisor ID:', pm.collectionVariables.get('financialAdvisorId'));",
+									"console.log('='.repeat(50));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"id\": \"{{investorId}}\",\n\t\"investorReferenceId\": \"{{investorReferenceId}}\",\n\t\"financialAdvisorId\": \"{{financialAdvisorId}}\",\n\t\"individualInvestor\": {\n\t\t\"firstName\": \"John\",\n\t\t\"lastName\": \"Doe\",\n\t\t\"isUSBased\": true,\n\t\t\"dateOfBirth\": \"{{randomDOB}}\",\n\t\t\"street1\": \"123 Market Street\",\n\t\t\"street2\": \"Apt 456\",\n\t\t\"city\": \"San Francisco\",\n\t\t\"state\": \"CA\",\n\t\t\"zipCode\": \"94103\",\n\t\t\"countryCode\": \"US\",\n\t\t\"phoneCountryCode\": \"1\",\n\t\t\"phoneNumber\": \"{{randomPhone}}\",\n\t\t\"mailingStreet1\": \"123 Market Street\",\n\t\t\"mailingStreet2\": \"Apt 456\",\n\t\t\"mailingAddressCity\": \"San Francisco\",\n\t\t\"mailingAddressState\": \"CA\",\n\t\t\"mailingAddressZipCode\": \"94103\",\n\t\t\"mailingAddressCountry\": \"US\",\n\t\t\"exemptPayeeCode\": \"1\",\n\t\t\"isSubscriptionAdvisorOrERA\": true,\n\t\t\"email\": \"{{randomEmail}}\",\n\t\t\"taxId\": \"{{randomSSN}}\",\n\t\t\"citizenship\": \"US\",\n\t\t\"qualifiedStatus\": \"QUALIFIED_CLIENT\"\n\t}\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary/v1/investor",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v1", "investor"]
+						},
+						"description": "Associate the financial advisor with the investor by updating the investor with the financialAdvisorId."
+					},
+					"response": []
+				},
+				{
+					"name": "1.6 Get Investor By ID",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.collectionVariables.get('investorId')) {",
+									"    throw new Error('investorId is required. Run \"Create Investor\" first.');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"console.log('='.repeat(50));",
+									"console.log('INVESTOR ONBOARDING COMPLETE');",
+									"console.log('='.repeat(50));",
+									"console.log('Investor ID:', response.id);",
+									"console.log('Status:', response.status);",
+									"console.log('Type:', response.type);",
+									"console.log('Financial Advisor ID:', response.financialAdvisorId);",
+									"console.log('='.repeat(50));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/primary/v1/investor/{{investorId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v1", "investor", "{{investorId}}"]
+						},
+						"description": "Verify investor details and status after onboarding."
+					},
+					"response": []
+				}
+			],
+			"description": "Complete investor onboarding workflow",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [""]
+					}
+				}
+			]
+		},
+		{
+			"name": "2. Select PreIPO Company SPV",
+			"item": [
+				{
+					"name": "2.1 Get All PreIPO Company SPVs",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.collectionVariables.get('investorId')) {",
+									"    throw new Error('investorId is required. Complete investor onboarding first.');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"if (response && response.items && response.items.length > 0) {",
+									"    console.log('='.repeat(50));",
+									"    console.log('PREIPO COMPANY SPV SELECTION');",
+									"    console.log('='.repeat(50));",
+									"    console.log('Total SPVs returned:', response.items.length);",
+									"    ",
+									"    // Filter eligible SPVs based on Java code criteria:",
+									"    // - remainingShareAllocation > 0",
+									"    // - remainingDollarAllocation > 0",
+									"    // - numberOfSeatsRemaining > 0",
+									"    // - monarkStage == PRIMARY_FUNDRAISE",
+									"    // - isApproved == true",
+									"    const eligibleSPVs = response.items.filter(spv => ",
+									"        spv.remainingShareAllocation > 0 &&",
+									"        spv.remainingDollarAllocation > 0 &&",
+									"        spv.numberOfSeatsRemaining > 0 &&",
+									"        spv.monarkStage === 'PRIMARY_FUNDRAISE' &&",
+									"        spv.isApproved === true",
+									"    );",
+									"    ",
+									"    console.log('Eligible SPVs (PRIMARY_FUNDRAISE, approved, with allocation):', eligibleSPVs.length);",
+									"    ",
+									"    if (eligibleSPVs.length > 0) {",
+									"        // Select the first eligible SPV",
+									"        const selectedSPV = eligibleSPVs[0];",
+									"        ",
+									"        pm.collectionVariables.set('preIPOCompanySPVId', selectedSPV.id);",
+									"        pm.collectionVariables.set('preIPOCompanySPVName', selectedSPV.name);",
+									"        pm.collectionVariables.set('spvMinCommitmentAmount', selectedSPV.minCommitmentAmount);",
+									"        pm.collectionVariables.set('spvRemainingDollarAllocation', selectedSPV.remainingDollarAllocation);",
+									"        pm.collectionVariables.set('spvRemainingShareAllocation', selectedSPV.remainingShareAllocation);",
+									"        pm.collectionVariables.set('spvAllInPricePerShare', selectedSPV.allInPricePerShare);",
+									"        ",
+									"        console.log('');",
+									"        console.log('Selected SPV:');",
+									"        console.log('  Name:', selectedSPV.name);",
+									"        console.log('  ID:', selectedSPV.id);",
+									"        console.log('  Stage:', selectedSPV.monarkStage);",
+									"        console.log('  Approved:', selectedSPV.isApproved);",
+									"        console.log('  Min Commitment: $' + selectedSPV.minCommitmentAmount);",
+									"        console.log('  Remaining Dollar Allocation: $' + selectedSPV.remainingDollarAllocation);",
+									"        console.log('  Remaining Share Allocation:', selectedSPV.remainingShareAllocation);",
+									"        console.log('  All-In Price Per Share: $' + selectedSPV.allInPricePerShare);",
+									"        console.log('  Seats Remaining:', selectedSPV.numberOfSeatsRemaining);",
+									"        ",
+									"        // List other eligible SPVs for reference",
+									"        if (eligibleSPVs.length > 1) {",
+									"            console.log('');",
+									"            console.log('Other eligible SPVs:');",
+									"            eligibleSPVs.slice(1, 6).forEach((spv, index) => {",
+									"                console.log(`  ${index + 2}. ${spv.name} (ID: ${spv.id})`);",
+									"            });",
+									"            if (eligibleSPVs.length > 6) {",
+									"                console.log(`  ... and ${eligibleSPVs.length - 6} more`);",
+									"            }",
+									"        }",
+									"    } else {",
+									"        console.error('No eligible SPVs found matching criteria:');",
+									"        console.error('  - monarkStage = PRIMARY_FUNDRAISE');",
+									"        console.error('  - isApproved = true');",
+									"        console.error('  - remainingShareAllocation > 0');",
+									"        console.error('  - remainingDollarAllocation > 0');",
+									"        console.error('  - numberOfSeatsRemaining > 0');",
+									"        throw new Error('No eligible SPVs found');",
+									"    }",
+									"    ",
+									"    console.log('='.repeat(50));",
+									"} else {",
+									"    console.error('No PreIPO Company SPVs returned');",
+									"    throw new Error('No PreIPO Company SPVs returned');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/primary/v1/pre-ipo-company-spv/investor/{{investorId}}?monarkStage=PRIMARY_FUNDRAISE&isApproved=true&page=1&pageSize=100&sortOrder=Descending&sortBy=UpdatedAt",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v1", "pre-ipo-company-spv", "investor", "{{investorId}}"],
+							"query": [
+								{
+									"key": "monarkStage",
+									"value": "PRIMARY_FUNDRAISE"
+								},
+								{
+									"key": "isApproved",
+									"value": "true"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "100"
+								},
+								{
+									"key": "sortOrder",
+									"value": "Descending"
+								},
+								{
+									"key": "sortBy",
+									"value": "UpdatedAt"
+								}
+							]
+						},
+						"description": "Fetch all PreIPO Company SPVs available for the investor and auto-select the first eligible one that meets the following criteria:\n- MonarkStage = PRIMARY_FUNDRAISE\n- isApproved = true\n- remainingShareAllocation > 0\n- remainingDollarAllocation > 0\n- numberOfSeatsRemaining > 0"
+					},
+					"response": []
+				}
+			],
+			"description": "Select a PreIPO Company SPV for subscription. The collection auto-selects the first eligible SPV in PRIMARY_FUNDRAISE stage."
+		},
+		{
+			"name": "3. Create SPV Subscription",
+			"item": [
+				{
+					"name": "3.1 Create Transaction",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.collectionVariables.get('investorId')) {",
+									"    throw new Error('investorId is required. Complete investor onboarding first.');",
+									"}",
+									"if (!pm.collectionVariables.get('preIPOCompanySPVId')) {",
+									"    throw new Error('preIPOCompanySPVId is required. Run \"Get All PreIPO Company SPVs\" first.');",
+									"}",
+									"",
+									"// Calculate subscription amount based on SPV constraints",
+									"// This mirrors the logic from SubscriptionCalculator.java",
+									"",
+									"const remainingShares = parseFloat(pm.collectionVariables.get('spvRemainingShareAllocation'));",
+									"const remainingDollars = parseFloat(pm.collectionVariables.get('spvRemainingDollarAllocation'));",
+									"const pricePerShare = parseFloat(pm.collectionVariables.get('spvAllInPricePerShare'));",
+									"const minCommitment = parseFloat(pm.collectionVariables.get('spvMinCommitmentAmount'));",
+									"",
+									"console.log('='.repeat(50));",
+									"console.log('CALCULATING SUBSCRIPTION AMOUNT');",
+									"console.log('='.repeat(50));",
+									"console.log('SPV Constraints:');",
+									"console.log('  Remaining Shares:', remainingShares);",
+									"console.log('  Remaining Dollars: $' + remainingDollars);",
+									"console.log('  Price Per Share: $' + pricePerShare);",
+									"console.log('  Min Commitment: $' + minCommitment);",
+									"",
+									"let subscriptionAmount;",
+									"",
+									"// Validate SPV data",
+									"if (remainingShares <= 0 || remainingDollars <= 0 || pricePerShare <= 0 || minCommitment <= 0) {",
+									"    throw new Error('SPV contains invalid or insufficient data.');",
+									"}",
+									"",
+									"// Case 1: remainingDollarAllocation < minCommitmentAmount, then take it all",
+									"if (remainingDollars < minCommitment) {",
+									"    subscriptionAmount = Math.round(remainingDollars * 100) / 100;",
+									"    console.log('');",
+									"    console.log('Case: Remaining dollars < min commitment, taking all remaining');",
+									"} else {",
+									"    // Calculate bounds using 2%-5% of remaining shares",
+									"    const minShares = Math.floor(remainingShares * 0.02);",
+									"    const maxShares = Math.floor(remainingShares * 0.05);",
+									"    ",
+									"    // Convert share bounds to dollar bounds",
+									"    const minDollars = Math.max(minShares * pricePerShare, minCommitment);",
+									"    const maxDollars = Math.min(maxShares * pricePerShare, remainingDollars);",
+									"    ",
+									"    console.log('');",
+									"    console.log('Calculated Bounds:');",
+									"    console.log('  Min Shares (2%):', minShares);",
+									"    console.log('  Max Shares (5%):', maxShares);",
+									"    console.log('  Min Dollars: $' + minDollars);",
+									"    console.log('  Max Dollars: $' + maxDollars);",
+									"    ",
+									"    // Fallback condition: min/max shares too small or no room between bounds",
+									"    if (minShares < 1 || maxShares < 1 || minDollars > maxDollars) {",
+									"        subscriptionAmount = Math.round(remainingDollars * 100) / 100;",
+									"        console.log('');",
+									"        console.log('Case: Fallback - taking all remaining dollars');",
+									"    } else {",
+									"        // Pick a random value between min and max dollars",
+									"        const randomDollars = minDollars + Math.random() * (maxDollars - minDollars);",
+									"        subscriptionAmount = Math.round(randomDollars * 100) / 100;",
+									"        console.log('');",
+									"        console.log('Case: Normal - random amount between bounds');",
+									"    }",
+									"}",
+									"",
+									"pm.collectionVariables.set('subscriptionAmount', subscriptionAmount);",
+									"console.log('');",
+									"console.log('Final Subscription Amount: $' + subscriptionAmount);",
+									"console.log('='.repeat(50));"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 201', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"if (response && response.id) {",
+									"    pm.collectionVariables.set('transactionId', response.id);",
+									"    console.log('='.repeat(50));",
+									"    console.log('TRANSACTION CREATED');",
+									"    console.log('='.repeat(50));",
+									"    console.log('Transaction ID:', response.id);",
+									"    console.log('Status:', response.status);",
+									"    console.log('Target Asset Type:', response.targetAssetType);",
+									"    console.log('Side:', response.side);",
+									"    console.log('Dollar Amount: $' + response.dollarAmount);",
+									"    console.log('Share Amount:', response.shareAmount);",
+									"    console.log('Investor ID:', response.investorId);",
+									"    console.log('='.repeat(50));",
+									"} else {",
+									"    console.error('No transaction ID in response');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"targetAssetType\": \"PreIPOCompanySPV\",\n\t\"targetId\": \"{{preIPOCompanySPVId}}\",\n\t\"side\": \"Subscription\",\n\t\"investorId\": \"{{investorId}}\",\n\t\"amountReservedDollars\": {{subscriptionAmount}}\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary/v2/transaction",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v2", "transaction"]
+						},
+						"description": "Create a PreIPO Company SPV subscription transaction. The subscription amount is automatically calculated based on SPV constraints (minCommitmentAmount, remainingDollarAllocation, etc.)."
+					},
+					"response": []
+				},
+				{
+					"name": "3.2 Get All Transaction Actions",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.collectionVariables.get('transactionId')) {",
+									"    throw new Error('transactionId is required. Run \"Create Transaction\" first.');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"if (response && Array.isArray(response)) {",
+									"    pm.collectionVariables.set('allTransactionActions', JSON.stringify(response));",
+									"    ",
+									"    // Separate investor and advisor actions",
+									"    const investorActions = response.filter(action => action.responsibleParty === 'Investor');",
+									"    const advisorActions = response.filter(action => action.responsibleParty === 'Advisor');",
+									"    ",
+									"    pm.collectionVariables.set('investorTransactionActions', JSON.stringify(investorActions));",
+									"    pm.collectionVariables.set('advisorTransactionActions', JSON.stringify(advisorActions));",
+									"    ",
+									"    console.log('='.repeat(50));",
+									"    console.log('TRANSACTION ACTIONS');",
+									"    console.log('='.repeat(50));",
+									"    console.log('Total Transaction Actions:', response.length);",
+									"    console.log('Investor Actions:', investorActions.length);",
+									"    console.log('Advisor Actions:', advisorActions.length);",
+									"    ",
+									"    // Log action types by party",
+									"    console.log('');",
+									"    console.log('Investor Actions:');",
+									"    investorActions.forEach((action, index) => {",
+									"        console.log(`  ${index + 1}. [${action.type}] ${action.status} (ID: ${action.id})`);",
+									"    });",
+									"    ",
+									"    console.log('');",
+									"    console.log('Advisor Actions:');",
+									"    advisorActions.forEach((action, index) => {",
+									"        console.log(`  ${index + 1}. [${action.type}] ${action.status} (ID: ${action.id})`);",
+									"    });",
+									"    ",
+									"    console.log('='.repeat(50));",
+									"} else {",
+									"    console.error('Invalid response format');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/primary/v2/transaction-action/transaction/{{transactionId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v2", "transaction-action", "transaction", "{{transactionId}}"]
+						},
+						"description": "Fetch all transaction actions for the created transaction and separate them by responsible party."
+					},
+					"response": []
+				}
+			],
+			"description": "Create subscription transaction and retrieve transaction actions"
+		},
+		{
+			"name": "4. Fetch Preview Documents",
+			"item": [
+				{
+					"name": "4.1 Get Documents by Transaction ID",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.collectionVariables.get('transactionId')) {",
+									"    throw new Error('transactionId is required.');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const response = pm.response.json();",
+									"",
+									"if (response && response.items && response.items.length > 0) {",
+									"    // Store all document details",
+									"    pm.collectionVariables.set('previewDocuments', JSON.stringify(response.items));",
+									"    ",
+									"    console.log('='.repeat(50));",
+									"    console.log('PREVIEW DOCUMENTS');",
+									"    console.log('='.repeat(50));",
+									"    console.log('Total Documents:', response.items.length);",
+									"    ",
+									"    response.items.forEach((doc, index) => {",
+									"        console.log('');",
+									"        console.log(`[${index + 1}] ${doc.name}`);",
+									"        console.log(`    ID: ${doc.id}`);",
+									"        console.log(`    Type: ${doc.type}`);",
+									"        console.log(`    Download URL: ${doc.url}`);",
+									"    });",
+									"    ",
+									"    // Store the first document for download",
+									"    if (response.items[0]) {",
+									"        pm.collectionVariables.set('firstPreviewDocumentDownloadUrl', response.items[0].url);",
+									"        pm.collectionVariables.set('firstPreviewDocumentName', response.items[0].name);",
+									"    }",
+									"    ",
+									"    console.log('='.repeat(50));",
+									"} else {",
+									"    console.log('No preview documents found');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/primary/v2/document?transactionId={{transactionId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v2", "document"],
+							"query": [
+								{
+									"key": "transactionId",
+									"value": "{{transactionId}}"
+								}
+							]
+						},
+						"description": "Fetch all preview documents for the transaction using the V2 Document API. Returns a list of documents with their download URLs."
+					},
+					"response": []
+				},
+				{
+					"name": "4.2 Download Preview Document",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const downloadUrl = pm.collectionVariables.get('firstPreviewDocumentDownloadUrl');",
+									"",
+									"if (!downloadUrl) {",
+									"    console.log('Skipping: No document download URL available');",
+									"    pm.execution.skipRequest();",
+									"} else {",
+									"    const documentName = pm.collectionVariables.get('firstPreviewDocumentName') || 'document';",
+									"    console.log('Preparing to download:', documentName);",
+									"    console.log('Download URL:', downloadUrl);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const location = pm.response.headers.get('location');",
+									"",
+									"if (location) {",
+									"    console.log('='.repeat(50));",
+									"    console.log('PREVIEW DOCUMENT DOWNLOAD REDIRECT');",
+									"    console.log('='.repeat(50));",
+									"    console.log('S3 URL:', location);",
+									"    console.log('');",
+									"    console.log('='.repeat(50));",
+									"} else {",
+									"    console.error('No redirect location found in response');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "*/*"
+							}
+						],
+						"url": {
+							"raw": "{{firstPreviewDocumentDownloadUrl}}",
+							"host": ["{{firstPreviewDocumentDownloadUrl}}"]
+						},
+						"description": "Download the preview document."
+					},
+					"response": []
+				}
+			],
+			"description": "Fetch preview documents for the transaction."
+		},
+		{
+			"name": "5. Complete Investor Transaction Actions",
+			"item": [
+				{
+					"name": "5.1 Complete Investor DocumentAcknowledge Actions",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const investorActionsStr = pm.collectionVariables.get('investorTransactionActions');",
+									"if (!investorActionsStr) {",
+									"    throw new Error('investorTransactionActions not found. Run \"Get All Transaction Actions\" first.');",
+									"}",
+									"",
+									"const investorActions = JSON.parse(investorActionsStr);",
+									"const docAckActions = investorActions.filter(action => action.type === 'DocumentAcknowledge');",
+									"",
+									"if (docAckActions.length === 0) {",
+									"    console.log('Skipping: No DocumentAcknowledge actions for investor');",
+									"    pm.execution.skipRequest();",
+									"} else {",
+									"    // Store ALL action IDs for processing",
+									"    const actionIds = docAckActions.map(a => a.id);",
+									"    pm.collectionVariables.set('currentActionIds', JSON.stringify(actionIds));",
+									"    pm.collectionVariables.set('currentActionId', actionIds[0]);",
+									"    console.log('Processing', actionIds.length, 'DocumentAcknowledge action(s) for investor');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// First action completed",
+									"pm.test('Status code is 200 or 204', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});",
+									"",
+									"const actionIdsStr = pm.collectionVariables.get('currentActionIds');",
+									"if (actionIdsStr) {",
+									"    const actionIds = JSON.parse(actionIdsStr);",
+									"    console.log('Completed DocumentAcknowledge action 1 of', actionIds.length);",
+									"    ",
+									"    // Complete remaining actions",
+									"    for (let i = 1; i < actionIds.length; i++) {",
+									"        const actionId = actionIds[i];",
+									"        pm.sendRequest({",
+									"            url: pm.environment.get('baseUrl') + '/primary/v2/transaction-action/' + actionId + '/complete',",
+									"            method: 'PUT',",
+									"            header: {",
+									"                'Authorization': 'Bearer ' + pm.environment.get('apiKey'),",
+									"                'Content-Type': 'application/json'",
+									"            },",
+									"            body: {",
+									"                mode: 'raw',",
+									"                raw: '{}'",
+									"            }",
+									"        }, function (err, response) {",
+									"            if (err) {",
+									"                console.error('Error completing action ' + (i + 1) + ':', err);",
+									"            } else if (response.code === 200 || response.code === 204) {",
+									"                console.log('Completed DocumentAcknowledge action ' + (i + 1) + ' of ' + actionIds.length);",
+									"            } else {",
+									"                console.error('Failed to complete action ' + (i + 1) + ':', response.code);",
+									"            }",
+									"        });",
+									"    }",
+									"    ",
+									"    // Clean up",
+									"    pm.collectionVariables.unset('currentActionIds');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary/v2/transaction-action/{{currentActionId}}/complete",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v2", "transaction-action", "{{currentActionId}}", "complete"]
+						},
+						"description": "Complete ALL DocumentAcknowledge transaction actions for the investor. Automatically processes all actions in a single request."
+					},
+					"response": []
+				},
+				{
+					"name": "5.2 Complete Investor TextAcknowledge Actions",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const investorActionsStr = pm.collectionVariables.get('investorTransactionActions');",
+									"if (!investorActionsStr) {",
+									"    throw new Error('investorTransactionActions not found. Run \"Get All Transaction Actions\" first.');",
+									"}",
+									"",
+									"const investorActions = JSON.parse(investorActionsStr);",
+									"const textAckActions = investorActions.filter(action => action.type === 'TextAcknowledge');",
+									"",
+									"if (textAckActions.length === 0) {",
+									"    console.log('Skipping: No TextAcknowledge actions for investor');",
+									"    pm.execution.skipRequest();",
+									"} else {",
+									"    // Store ALL action IDs for processing",
+									"    const actionIds = textAckActions.map(a => a.id);",
+									"    pm.collectionVariables.set('currentActionIds', JSON.stringify(actionIds));",
+									"    pm.collectionVariables.set('currentActionId', actionIds[0]);",
+									"    console.log('Processing', actionIds.length, 'TextAcknowledge action(s) for investor');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// First action completed",
+									"pm.test('Status code is 200 or 204', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});",
+									"",
+									"const actionIdsStr = pm.collectionVariables.get('currentActionIds');",
+									"if (actionIdsStr) {",
+									"    const actionIds = JSON.parse(actionIdsStr);",
+									"    console.log('Completed TextAcknowledge action 1 of', actionIds.length);",
+									"    ",
+									"    // Complete remaining actions",
+									"    for (let i = 1; i < actionIds.length; i++) {",
+									"        const actionId = actionIds[i];",
+									"        pm.sendRequest({",
+									"            url: pm.environment.get('baseUrl') + '/primary/v2/transaction-action/' + actionId + '/complete',",
+									"            method: 'PUT',",
+									"            header: {",
+									"                'Authorization': 'Bearer ' + pm.environment.get('apiKey'),",
+									"                'Content-Type': 'application/json'",
+									"            },",
+									"            body: {",
+									"                mode: 'raw',",
+									"                raw: '{}'",
+									"            }",
+									"        }, function (err, response) {",
+									"            if (err) {",
+									"                console.error('Error completing action ' + (i + 1) + ':', err);",
+									"            } else if (response.code === 200 || response.code === 204) {",
+									"                console.log('Completed TextAcknowledge action ' + (i + 1) + ' of ' + actionIds.length);",
+									"            } else {",
+									"                console.error('Failed to complete action ' + (i + 1) + ':', response.code);",
+									"            }",
+									"        });",
+									"    }",
+									"    ",
+									"    // Clean up",
+									"    pm.collectionVariables.unset('currentActionIds');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary/v2/transaction-action/{{currentActionId}}/complete",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v2", "transaction-action", "{{currentActionId}}", "complete"]
+						},
+						"description": "Complete ALL TextAcknowledge transaction actions for the investor. Automatically processes all actions in a single request."
+					},
+					"response": []
+				},
+				{
+					"name": "5.3 Complete Investor DocumentSign Actions",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const investorActionsStr = pm.collectionVariables.get('investorTransactionActions');",
+									"if (!investorActionsStr) {",
+									"    throw new Error('investorTransactionActions not found. Run \"Get All Transaction Actions\" first.');",
+									"}",
+									"",
+									"const investorActions = JSON.parse(investorActionsStr);",
+									"const docSignActions = investorActions.filter(action => action.type === 'DocumentSign');",
+									"",
+									"if (docSignActions.length === 0) {",
+									"    console.log('Skipping: No DocumentSign actions for investor');",
+									"    pm.execution.skipRequest();",
+									"} else {",
+									"    // Store ALL action IDs and document IDs for processing",
+									"    const actionIds = docSignActions.map(a => a.id);",
+									"    const documentIds = docSignActions.map(a => a.dataId);",
+									"    pm.collectionVariables.set('currentActionIds', JSON.stringify(actionIds));",
+									"    pm.collectionVariables.set('currentActionId', actionIds[0]);",
+									"    pm.collectionVariables.set('currentDocumentIds', JSON.stringify(documentIds));",
+									"    pm.collectionVariables.set('currentDocumentId', documentIds[0]);",
+									"    console.log('Processing', actionIds.length, 'DocumentSign action(s) for investor');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// First action completed",
+									"pm.test('Status code is 200 or 204', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});",
+									"",
+									"const actionIdsStr = pm.collectionVariables.get('currentActionIds');",
+									"const documentIdsStr = pm.collectionVariables.get('currentDocumentIds');",
+									"",
+									"if (actionIdsStr && documentIdsStr) {",
+									"    const actionIds = JSON.parse(actionIdsStr);",
+									"    const documentIds = JSON.parse(documentIdsStr);",
+									"    console.log('Completed DocumentSign action 1 of', actionIds.length, '(investor)');",
+									"    ",
+									"    // Track document IDs for later retrieval",
+									"    pm.collectionVariables.set('investorSignedDocumentIds', JSON.stringify(documentIds));",
+									"    ",
+									"    // Complete remaining actions",
+									"    for (let i = 1; i < actionIds.length; i++) {",
+									"        const actionId = actionIds[i];",
+									"        pm.sendRequest({",
+									"            url: pm.environment.get('baseUrl') + '/primary/v2/transaction-action/' + actionId + '/complete',",
+									"            method: 'PUT',",
+									"            header: {",
+									"                'Authorization': 'Bearer ' + pm.environment.get('apiKey'),",
+									"                'Content-Type': 'application/json'",
+									"            },",
+									"            body: {",
+									"                mode: 'raw',",
+									"                raw: '{}'",
+									"            }",
+									"        }, function (err, response) {",
+									"            if (err) {",
+									"                console.error('Error completing action ' + (i + 1) + ':', err);",
+									"            } else if (response.code === 200 || response.code === 204) {",
+									"                console.log('Completed DocumentSign action ' + (i + 1) + ' of ' + actionIds.length + ' (investor)');",
+									"            } else {",
+									"                console.error('Failed to complete action ' + (i + 1) + ':', response.code);",
+									"            }",
+									"        });",
+									"    }",
+									"    ",
+									"    // Clean up",
+									"    pm.collectionVariables.unset('currentActionIds');",
+									"    pm.collectionVariables.unset('currentDocumentIds');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary/v2/transaction-action/{{currentActionId}}/complete",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v2", "transaction-action", "{{currentActionId}}", "complete"]
+						},
+						"description": "Complete ALL DocumentSign transaction actions for the investor. The system will automatically sign the document when all pending actions for the investor are completed. Automatically processes all actions in a single request."
+					},
+					"response": []
+				},
+				{
+					"name": "5.4 Get Investor Questionnaire Actions",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const investorActionsStr = pm.collectionVariables.get('investorTransactionActions');",
+									"if (!investorActionsStr) {",
+									"    throw new Error('investorTransactionActions not found. Run \"Get All Transaction Actions\" first.');",
+									"}",
+									"",
+									"const investorActions = JSON.parse(investorActionsStr);",
+									"const questionnaireActions = investorActions.filter(action => action.type === 'Questionnaire' && action.dataId);",
+									"",
+									"if (questionnaireActions.length === 0) {",
+									"    console.log('Skipping: No Questionnaire actions for investor');",
+									"    pm.execution.skipRequest();",
+									"} else {",
+									"    // Store the first questionnaire action for processing",
+									"    const firstAction = questionnaireActions[0];",
+									"    pm.collectionVariables.set('currentQuestionnaireActionId', firstAction.id);",
+									"    pm.collectionVariables.set('currentQuestionnaireDataId', firstAction.dataId);",
+									"    pm.collectionVariables.set('allQuestionnaireActions', JSON.stringify(questionnaireActions));",
+									"    console.log('Processing', questionnaireActions.length, 'Questionnaire action(s) for investor');",
+									"    console.log('Fetching questionnaire:', firstAction.dataId);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"if (response && response.questions) {",
+									"    console.log('='.repeat(50));",
+									"    console.log('QUESTIONNAIRE DETAILS');",
+									"    console.log('='.repeat(50));",
+									"    console.log('Questionnaire:', response.name);",
+									"    console.log('Questions:', response.questions.length);",
+									"    ",
+									"    // Generate answers for all questions",
+									"    const createQuestionAnswers = [];",
+									"    ",
+									"    response.questions.forEach((q, index) => {",
+									"        let value;",
+									"        ",
+									"        switch (q.format) {",
+									"            case 'Integer':",
+									"                value = String(Math.floor(Math.random() * 100));",
+									"                break;",
+									"            case 'Float':",
+									"                value = String((Math.random() * 100).toFixed(2));",
+									"                break;",
+									"            case 'Percentage':",
+									"                value = String((Math.random() * 100).toFixed(2));",
+									"                break;",
+									"            case 'MultipleChoiceSingle':",
+									"                if (q.options && q.options.length > 0) {",
+									"                    value = q.options[Math.floor(Math.random() * q.options.length)];",
+									"                } else {",
+									"                    value = 'No option available';",
+									"                }",
+									"                break;",
+									"            case 'MultipleChoiceMultiple':",
+									"                if (q.options && q.options.length > 0) {",
+									"                    // Select 1-3 random options",
+									"                    const numSelections = Math.min(Math.floor(Math.random() * 3) + 1, q.options.length);",
+									"                    const shuffled = [...q.options].sort(() => 0.5 - Math.random());",
+									"                    value = shuffled.slice(0, numSelections).join(',');",
+									"                } else {",
+									"                    value = 'No options available';",
+									"                }",
+									"                break;",
+									"            case 'Boolean':",
+									"                value = 'true';",
+									"                break;",
+									"            case 'Date':",
+									"                const randomDate = new Date();",
+									"                randomDate.setDate(randomDate.getDate() - Math.floor(Math.random() * 365));",
+									"                value = randomDate.toISOString().split('T')[0];",
+									"                break;",
+									"            case 'Text':",
+									"                value = 'Sample text answer';",
+									"                break;",
+									"            case 'Email':",
+									"                value = 'test@example.com';",
+									"                break;",
+									"            case 'Scale':",
+									"                const min = q.scaleMin || 0;",
+									"                const max = q.scaleMax || 10;",
+									"                const step = q.scaleStep || 1;",
+									"                value = String(min + Math.floor(Math.random() * ((max - min) / step + 1)) * step);",
+									"                break;",
+									"            default:",
+									"                value = 'Default answer';",
+									"        }",
+									"        ",
+									"        createQuestionAnswers.push({",
+									"            questionnaireQuestionId: q.id,",
+									"            value: value",
+									"        });",
+									"        ",
+									"        const questionPreview = q.text.length > 50 ? q.text.substring(0, 50) + '...' : q.text;",
+									"        console.log('  Q' + (index + 1) + ': ' + questionPreview + ' => ' + value);",
+									"    });",
+									"    ",
+									"    // Store the answers payload",
+									"    const payload = {",
+									"        questionnaireId: response.id,",
+									"        investorId: pm.collectionVariables.get('investorId'),",
+									"        createQuestionAnswers: createQuestionAnswers",
+									"    };",
+									"    ",
+									"    pm.collectionVariables.set('questionnaireAnswersPayload', JSON.stringify(payload));",
+									"    console.log('');",
+									"    console.log('Generated answers for all questions');",
+									"    console.log('='.repeat(50));",
+									"} else {",
+									"    console.error('Invalid questionnaire response');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/primary/v1/questionnaire/{{currentQuestionnaireDataId}}?investorId={{investorId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v1", "questionnaire", "{{currentQuestionnaireDataId}}"],
+							"query": [
+								{
+									"key": "investorId",
+									"value": "{{investorId}}"
+								}
+							]
+						},
+						"description": "Fetch the questionnaire details by ID from the Questionnaire transaction action's dataId field. The investorId is passed to retrieve investor-specific questionnaire data if applicable."
+					},
+					"response": []
+				},
+				{
+					"name": "5.5 Submit Questionnaire Answers",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const payloadStr = pm.collectionVariables.get('questionnaireAnswersPayload');",
+									"if (!payloadStr) {",
+									"    console.log('Skipping: No questionnaire answers to submit');",
+									"    pm.execution.skipRequest();",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 201', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"",
+									"console.log('='.repeat(50));",
+									"console.log('QUESTIONNAIRE ANSWERS SUBMITTED');",
+									"console.log('='.repeat(50));",
+									"console.log('Questionnaire answers submitted successfully');",
+									"console.log('='.repeat(50));",
+									"",
+									"// Clean up",
+									"pm.collectionVariables.unset('questionnaireAnswersPayload');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{{questionnaireAnswersPayload}}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary/v1/questionnaire-answer",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v1", "questionnaire-answer"]
+						},
+						"description": "Submit answers to the questionnaire questions. This creates a QuestionnaireAnswer with all the question responses."
+					},
+					"response": []
+				},
+				{
+					"name": "5.6 Complete Investor Questionnaire Actions",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const actionId = pm.collectionVariables.get('currentQuestionnaireActionId');",
+									"if (!actionId) {",
+									"    console.log('Skipping: No questionnaire action to complete');",
+									"    pm.execution.skipRequest();",
+									"} else {",
+									"    console.log('Completing questionnaire action:', actionId);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 204', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});",
+									"",
+									"console.log('='.repeat(50));",
+									"console.log('QUESTIONNAIRE ACTION COMPLETED');",
+									"console.log('='.repeat(50));",
+									"console.log('Questionnaire action completed');",
+									"",
+									"// Process remaining questionnaire actions if any",
+									"const allActionsStr = pm.collectionVariables.get('allQuestionnaireActions');",
+									"if (allActionsStr) {",
+									"    const allActions = JSON.parse(allActionsStr);",
+									"    ",
+									"    // Complete remaining actions (if more than one)",
+									"    for (let i = 1; i < allActions.length; i++) {",
+									"        const action = allActions[i];",
+									"        ",
+									"        // Fetch questionnaire and submit answers for each remaining action",
+									"        console.log('Processing additional questionnaire ' + (i + 1) + ' of ' + allActions.length);",
+									"        ",
+									"        // Note: In a real scenario, you would need to fetch each questionnaire,",
+									"        // generate answers, submit them, and complete the action.",
+									"        // For now, we'll just complete the action",
+									"        pm.sendRequest({",
+									"            url: pm.environment.get('baseUrl') + '/primary/v2/transaction-action/' + action.id + '/complete',",
+									"            method: 'PUT',",
+									"            header: {",
+									"                'Authorization': 'Bearer ' + pm.environment.get('apiKey'),",
+									"                'Content-Type': 'application/json'",
+									"            },",
+									"            body: {",
+									"                mode: 'raw',",
+									"                raw: '{}'",
+									"            }",
+									"        }, function (err, response) {",
+									"            if (err) {",
+									"                console.error('Error completing questionnaire action ' + (i + 1) + ':', err);",
+									"            } else if (response.code === 200 || response.code === 204) {",
+									"                console.log('Completed questionnaire action ' + (i + 1) + ' of ' + allActions.length);",
+									"            } else {",
+									"                console.error('Failed to complete questionnaire action ' + (i + 1) + ':', response.code);",
+									"            }",
+									"        });",
+									"    }",
+									"}",
+									"",
+									"console.log('='.repeat(50));",
+									"",
+									"// Clean up",
+									"pm.collectionVariables.unset('currentQuestionnaireActionId');",
+									"pm.collectionVariables.unset('currentQuestionnaireDataId');",
+									"pm.collectionVariables.unset('allQuestionnaireActions');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary/v2/transaction-action/{{currentQuestionnaireActionId}}/complete",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v2", "transaction-action", "{{currentQuestionnaireActionId}}", "complete"]
+						},
+						"description": "Complete the Questionnaire transaction action after submitting the answers. This marks the questionnaire as completed for the investor."
+					},
+					"response": []
+				}
+			],
+			"description": "Complete all transaction actions where responsibleParty is Investor. All action types (DocumentAcknowledge, TextAcknowledge, DocumentSign, Questionnaire) use the same /complete endpoint. For Questionnaire actions, the collection fetches questionnaire details from the dataId, generates random answers for all question types, submits them, and completes the action. Documents are signed automatically when all investor actions are completed."
+		},
+		{
+			"name": "6. Complete Advisor Transaction Actions",
+			"item": [
+				{
+					"name": "6.1 Complete Advisor DocumentAcknowledge Actions",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const advisorActionsStr = pm.collectionVariables.get('advisorTransactionActions');",
+									"if (!advisorActionsStr) {",
+									"    throw new Error('advisorTransactionActions not found. Run \"Get All Transaction Actions\" first.');",
+									"}",
+									"",
+									"const advisorActions = JSON.parse(advisorActionsStr);",
+									"const docAckActions = advisorActions.filter(action => action.type === 'DocumentAcknowledge');",
+									"",
+									"if (docAckActions.length === 0) {",
+									"    console.log('Skipping: No DocumentAcknowledge actions for advisor');",
+									"    pm.execution.skipRequest();",
+									"} else {",
+									"    // Store ALL action IDs for processing",
+									"    const actionIds = docAckActions.map(a => a.id);",
+									"    pm.collectionVariables.set('currentActionIds', JSON.stringify(actionIds));",
+									"    pm.collectionVariables.set('currentActionId', actionIds[0]);",
+									"    console.log('Processing', actionIds.length, 'DocumentAcknowledge action(s) for advisor');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// First action completed",
+									"pm.test('Status code is 200 or 204', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});",
+									"",
+									"const actionIdsStr = pm.collectionVariables.get('currentActionIds');",
+									"if (actionIdsStr) {",
+									"    const actionIds = JSON.parse(actionIdsStr);",
+									"    console.log('Completed DocumentAcknowledge action 1 of', actionIds.length, '(advisor)');",
+									"    ",
+									"    // Complete remaining actions",
+									"    for (let i = 1; i < actionIds.length; i++) {",
+									"        const actionId = actionIds[i];",
+									"        pm.sendRequest({",
+									"            url: pm.environment.get('baseUrl') + '/primary/v2/transaction-action/' + actionId + '/complete',",
+									"            method: 'PUT',",
+									"            header: {",
+									"                'Authorization': 'Bearer ' + pm.environment.get('apiKey'),",
+									"                'Content-Type': 'application/json'",
+									"            },",
+									"            body: {",
+									"                mode: 'raw',",
+									"                raw: '{}'",
+									"            }",
+									"        }, function (err, response) {",
+									"            if (err) {",
+									"                console.error('Error completing action ' + (i + 1) + ':', err);",
+									"            } else if (response.code === 200 || response.code === 204) {",
+									"                console.log('Completed DocumentAcknowledge action ' + (i + 1) + ' of ' + actionIds.length + ' (advisor)');",
+									"            } else {",
+									"                console.error('Failed to complete action ' + (i + 1) + ':', response.code);",
+									"            }",
+									"        });",
+									"    }",
+									"    ",
+									"    // Clean up",
+									"    pm.collectionVariables.unset('currentActionIds');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary/v2/transaction-action/{{currentActionId}}/complete",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v2", "transaction-action", "{{currentActionId}}", "complete"]
+						},
+						"description": "Complete ALL DocumentAcknowledge transaction actions for the advisor. Automatically processes all actions in a single request."
+					},
+					"response": []
+				},
+				{
+					"name": "6.2 Complete Advisor TextAcknowledge Actions",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const advisorActionsStr = pm.collectionVariables.get('advisorTransactionActions');",
+									"if (!advisorActionsStr) {",
+									"    throw new Error('advisorTransactionActions not found. Run \"Get All Transaction Actions\" first.');",
+									"}",
+									"",
+									"const advisorActions = JSON.parse(advisorActionsStr);",
+									"const textAckActions = advisorActions.filter(action => action.type === 'TextAcknowledge');",
+									"",
+									"if (textAckActions.length === 0) {",
+									"    console.log('Skipping: No TextAcknowledge actions for advisor');",
+									"    pm.execution.skipRequest();",
+									"} else {",
+									"    // Store ALL action IDs for processing",
+									"    const actionIds = textAckActions.map(a => a.id);",
+									"    pm.collectionVariables.set('currentActionIds', JSON.stringify(actionIds));",
+									"    pm.collectionVariables.set('currentActionId', actionIds[0]);",
+									"    console.log('Processing', actionIds.length, 'TextAcknowledge action(s) for advisor');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// First action completed",
+									"pm.test('Status code is 200 or 204', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});",
+									"",
+									"const actionIdsStr = pm.collectionVariables.get('currentActionIds');",
+									"if (actionIdsStr) {",
+									"    const actionIds = JSON.parse(actionIdsStr);",
+									"    console.log('Completed TextAcknowledge action 1 of', actionIds.length, '(advisor)');",
+									"    ",
+									"    // Complete remaining actions",
+									"    for (let i = 1; i < actionIds.length; i++) {",
+									"        const actionId = actionIds[i];",
+									"        pm.sendRequest({",
+									"            url: pm.environment.get('baseUrl') + '/primary/v2/transaction-action/' + actionId + '/complete',",
+									"            method: 'PUT',",
+									"            header: {",
+									"                'Authorization': 'Bearer ' + pm.environment.get('apiKey'),",
+									"                'Content-Type': 'application/json'",
+									"            },",
+									"            body: {",
+									"                mode: 'raw',",
+									"                raw: '{}'",
+									"            }",
+									"        }, function (err, response) {",
+									"            if (err) {",
+									"                console.error('Error completing action ' + (i + 1) + ':', err);",
+									"            } else if (response.code === 200 || response.code === 204) {",
+									"                console.log('Completed TextAcknowledge action ' + (i + 1) + ' of ' + actionIds.length + ' (advisor)');",
+									"            } else {",
+									"                console.error('Failed to complete action ' + (i + 1) + ':', response.code);",
+									"            }",
+									"        });",
+									"    }",
+									"    ",
+									"    // Clean up",
+									"    pm.collectionVariables.unset('currentActionIds');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary/v2/transaction-action/{{currentActionId}}/complete",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v2", "transaction-action", "{{currentActionId}}", "complete"]
+						},
+						"description": "Complete ALL TextAcknowledge transaction actions for the advisor. Automatically processes all actions in a single request."
+					},
+					"response": []
+				},
+				{
+					"name": "6.3 Complete Advisor DocumentSign Actions",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const advisorActionsStr = pm.collectionVariables.get('advisorTransactionActions');",
+									"if (!advisorActionsStr) {",
+									"    throw new Error('advisorTransactionActions not found. Run \"Get All Transaction Actions\" first.');",
+									"}",
+									"",
+									"const advisorActions = JSON.parse(advisorActionsStr);",
+									"const docSignActions = advisorActions.filter(action => action.type === 'DocumentSign');",
+									"",
+									"if (docSignActions.length === 0) {",
+									"    console.log('Skipping: No DocumentSign actions for advisor');",
+									"    pm.execution.skipRequest();",
+									"} else {",
+									"    // Store ALL action IDs and document IDs for processing",
+									"    const actionIds = docSignActions.map(a => a.id);",
+									"    const documentIds = docSignActions.map(a => a.dataId);",
+									"    pm.collectionVariables.set('currentActionIds', JSON.stringify(actionIds));",
+									"    pm.collectionVariables.set('currentActionId', actionIds[0]);",
+									"    pm.collectionVariables.set('currentDocumentIds', JSON.stringify(documentIds));",
+									"    pm.collectionVariables.set('currentDocumentId', documentIds[0]);",
+									"    console.log('Processing', actionIds.length, 'DocumentSign action(s) for advisor');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// First action completed",
+									"pm.test('Status code is 200 or 204', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});",
+									"",
+									"const actionIdsStr = pm.collectionVariables.get('currentActionIds');",
+									"const documentIdsStr = pm.collectionVariables.get('currentDocumentIds');",
+									"",
+									"if (actionIdsStr && documentIdsStr) {",
+									"    const actionIds = JSON.parse(actionIdsStr);",
+									"    const documentIds = JSON.parse(documentIdsStr);",
+									"    console.log('Completed DocumentSign action 1 of', actionIds.length, '(advisor)');",
+									"    ",
+									"    // Track document IDs for later retrieval",
+									"    pm.collectionVariables.set('advisorSignedDocumentIds', JSON.stringify(documentIds));",
+									"    ",
+									"    // Complete remaining actions",
+									"    for (let i = 1; i < actionIds.length; i++) {",
+									"        const actionId = actionIds[i];",
+									"        pm.sendRequest({",
+									"            url: pm.environment.get('baseUrl') + '/primary/v2/transaction-action/' + actionId + '/complete',",
+									"            method: 'PUT',",
+									"            header: {",
+									"                'Authorization': 'Bearer ' + pm.environment.get('apiKey'),",
+									"                'Content-Type': 'application/json'",
+									"            },",
+									"            body: {",
+									"                mode: 'raw',",
+									"                raw: '{}'",
+									"            }",
+									"        }, function (err, response) {",
+									"            if (err) {",
+									"                console.error('Error completing action ' + (i + 1) + ':', err);",
+									"            } else if (response.code === 200 || response.code === 204) {",
+									"                console.log('Completed DocumentSign action ' + (i + 1) + ' of ' + actionIds.length + ' (advisor)');",
+									"            } else {",
+									"                console.error('Failed to complete action ' + (i + 1) + ':', response.code);",
+									"            }",
+									"        });",
+									"    }",
+									"    ",
+									"    // Clean up",
+									"    pm.collectionVariables.unset('currentActionIds');",
+									"    pm.collectionVariables.unset('currentDocumentIds');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary/v2/transaction-action/{{currentActionId}}/complete",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v2", "transaction-action", "{{currentActionId}}", "complete"]
+						},
+						"description": "Complete ALL DocumentSign transaction actions for the advisor. The system will automatically sign the document when all pending actions for the advisor are completed. Automatically processes all actions in a single request."
+					},
+					"response": []
+				}
+			],
+			"description": "Complete all transaction actions where responsibleParty is Advisor. All action types (DocumentAcknowledge, TextAcknowledge, DocumentSign) use the same /complete endpoint. Documents are signed automatically when all advisor actions are completed."
+		},
+		{
+			"name": "7. Fetch Signed Documents",
+			"item": [
+				{
+					"name": "7.1 Get Signed Documents by Transaction ID",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.collectionVariables.get('transactionId')) {",
+									"    throw new Error('transactionId is required.');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"if (response && response.items && response.items.length > 0) {",
+									"    // Store all document details",
+									"    pm.collectionVariables.set('signedDocuments', JSON.stringify(response.items));",
+									"    ",
+									"    console.log('='.repeat(50));",
+									"    console.log('SIGNED DOCUMENTS');",
+									"    console.log('='.repeat(50));",
+									"    console.log('Total Documents:', response.items.length);",
+									"    ",
+									"    response.items.forEach((doc, index) => {",
+									"        console.log('');",
+									"        console.log('[' + (index + 1) + '] ' + doc.name);",
+									"        console.log('    ID:', doc.id);",
+									"        console.log('    Type:', doc.type);",
+									"        console.log('    Download URL:', doc.url);",
+									"    });",
+									"    ",
+									"    // Store the first document for download",
+									"    if (response.items[0]) {",
+									"        pm.collectionVariables.set('firstDocumentDownloadUrl', response.items[0].url);",
+									"        pm.collectionVariables.set('firstDocumentName', response.items[0].name);",
+									"    }",
+									"    ",
+									"    console.log('='.repeat(50));",
+									"} else {",
+									"    console.log('No signed documents found');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/primary/v2/document?transactionId={{transactionId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v2", "document"],
+							"query": [
+								{
+									"key": "transactionId",
+									"value": "{{transactionId}}"
+								}
+							]
+						},
+						"description": "Fetch all signed documents for the transaction using the V2 Document API. Returns a list of documents with their download URLs."
+					},
+					"response": []
+				},
+				{
+					"name": "7.2 Download Signed Document",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const downloadUrl = pm.collectionVariables.get('firstDocumentDownloadUrl');",
+									"",
+									"if (!downloadUrl) {",
+									"    console.log('Skipping: No document download URL available');",
+									"    pm.execution.skipRequest();",
+									"} else {",
+									"    const documentName = pm.collectionVariables.get('firstDocumentName') || 'document';",
+									"    console.log('Preparing to download:', documentName);",
+									"    console.log('Download URL:', downloadUrl);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Get the redirect location (S3 presigned URL)",
+									"const location = pm.response.headers.get('location');",
+									"",
+									"if (location) {",
+									"    console.log('='.repeat(50));",
+									"    console.log('DOCUMENT DOWNLOAD REDIRECT');",
+									"    console.log('='.repeat(50));",
+									"    console.log('S3 URL:', location);",
+									"    console.log('');",
+									"    console.log('Note: Use this URL to download the actual PDF document.');",
+									"    console.log('The presigned URL is valid for 15 minutes (900 seconds).');",
+									"    console.log('='.repeat(50));",
+									"    ",
+									"    // Store for reference",
+									"    pm.collectionVariables.set('s3PresignedUrl', location);",
+									"} else {",
+									"    console.error('No redirect location found in response');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "*/*"
+							}
+						],
+						"url": {
+							"raw": "{{firstDocumentDownloadUrl}}",
+							"host": ["{{firstDocumentDownloadUrl}}"]
+						},
+						"description": "Download the first signed document. This endpoint returns a 302 redirect to an S3 presigned URL where the actual PDF can be downloaded. The presigned URL is valid for 15 minutes.\n\nNote: If multiple documents exist, only the first one is downloaded. If you need to download additional documents, manually run this request again after updating the 'firstDocumentDownloadUrl' variable with another document's URL from the previous step.\n\nImportant: Postman does not store documents larger than 300KB in the response body."
+					},
+					"response": []
+				},
+				{
+					"name": "7.3 Get Final Transaction Status",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.collectionVariables.get('transactionId')) {",
+									"    throw new Error('transactionId is required.');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"console.log('='.repeat(50));",
+									"console.log('FINAL TRANSACTION STATUS');",
+									"console.log('='.repeat(50));",
+									"console.log('Transaction ID:', response.id);",
+									"console.log('Status:', response.status);",
+									"console.log('Dollar Amount: $' + response.dollarAmount);",
+									"console.log('Share Amount:', response.shareAmount);",
+									"console.log('Target Asset Type:', response.targetAssetType);",
+									"console.log('Target ID:', response.targetId);",
+									"console.log('Investor ID:', response.investorId);",
+									"console.log('='.repeat(50));",
+									"console.log('PreIPO Company SPV Subscription Complete!');",
+									"console.log('='.repeat(50));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/primary/v2/transaction/{{transactionId}}?includeDocuments=true",
+							"host": ["{{baseUrl}}"],
+							"path": ["primary", "v2", "transaction", "{{transactionId}}"],
+							"query": [
+								{
+									"key": "includeDocuments",
+									"value": "true"
+								}
+							]
+						},
+						"description": "Verify final transaction status after completing all transaction actions."
+					},
+					"response": []
+				}
+			],
+			"description": "Fetch signed documents for the transaction and optionally download them. The V2 Document API returns download URLs that redirect to S3 presigned URLs valid for 15 minutes."
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Auto-clear collection variables when starting a Collection Runner run",
+					"// This prevents stale data from previous runs while allowing manual execution",
+					"",
+					"// Only run at the VERY FIRST request (1.1 Get All Financial Institutions)",
+					"const isCollectionRunner = pm.info.eventName === 'prerequest' && pm.info.iteration !== undefined;",
+					"const isFirstRequest = pm.info.requestName === '1.1 Get All Financial Institutions';",
+					"const notYetInitialized = !pm.collectionVariables.get('_runInitialized');",
+					"",
+					"if (isCollectionRunner && isFirstRequest && notYetInitialized) {",
+					"    console.log('='.repeat(60));",
+					"    console.log('Collection Runner detected - Clearing all variables');",
+					"    console.log('='.repeat(60));",
+					"    ",
+					"    // Clear all collection variables used in this workflow",
+					"    const variablesToClear = [",
+					"        'financialInstitutionId',",
+					"        'investorId',",
+					"        'investorReferenceId',",
+					"        'randomSSN',",
+					"        'randomEmail',",
+					"        'randomPhone',",
+					"        'randomDOB',",
+					"        'questionnaires',",
+					"        'currentQuestionnaireId',",
+					"        'questionnaireAnswers',",
+					"        'crdNumber',",
+					"        'iardNumber',",
+					"        'financialAdvisorId',",
+					"        'preIPOCompanySPVId',",
+					"        'preIPOCompanySPVName',",
+					"        'spvMinCommitmentAmount',",
+					"        'spvRemainingDollarAllocation',",
+					"        'spvRemainingShareAllocation',",
+					"        'spvAllInPricePerShare',",
+					"        'subscriptionAmount',",
+					"        'transactionId',",
+					"        'allTransactionActions',",
+					"        'investorTransactionActions',",
+					"        'advisorTransactionActions',",
+					"        'currentActionId',",
+					"        'currentActionIds',",
+					"        'currentDocumentId',",
+					"        'currentDocumentIds',",
+					"        'investorSignedDocumentIds',",
+					"        'advisorSignedDocumentIds',",
+					"        'signedDocuments',",
+					"        'firstDocumentDownloadUrl',",
+					"        'firstDocumentName',",
+					"        's3PresignedUrl',",
+					"        'currentQuestionnaireActionId',",
+					"        'currentQuestionnaireDataId',",
+					"        'allQuestionnaireActions',",
+					"        'questionnaireAnswersPayload',",
+					"        'previewDocuments',",
+					"        'firstPreviewDocumentDownloadUrl',",
+					"        'firstPreviewDocumentName'",
+					"    ];",
+					"    ",
+					"    variablesToClear.forEach(varName => {",
+					"        pm.collectionVariables.unset(varName);",
+					"    });",
+					"    ",
+					"    // Mark that we've initialized this run",
+					"    pm.collectionVariables.set('_runInitialized', 'true');",
+					"    ",
+					"    console.log('Variables cleared - Starting fresh run');",
+					"    console.log('='.repeat(60));",
+					"}"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Clear the run initialization flag at the end of the collection",
+					"// This ensures the next Collection Runner run will clear variables again",
+					"const isCollectionRunner = pm.info.eventName === 'test' && pm.info.iteration !== undefined;",
+					"const isLastRequest = pm.info.requestName === '7.3 Get Final Transaction Status';",
+					"",
+					"if (isCollectionRunner && isLastRequest) {",
+					"    pm.collectionVariables.unset('_runInitialized');",
+					"    console.log('Collection run complete - Ready for next run');",
+					"}"
+				]
+			}
+		}
+	],
+	"variable": []
+}
