@@ -110,6 +110,38 @@ public class InvestorSubscriptionTransactionRecipes {
 		return finalTransaction;
 	}
 
+	/**
+	 * Subscription Rejection using Transaction API
+	 * This flow describes the creation and rejection of a Subscription on the primary market using the new unified
+	 * Transaction API.
+	 */
+	public static Transaction submitAndRejectInvestorSubscription(UUID investorId) {
+		// Step 1: Get a PreIPOCompanySPV
+		// SPVs can only accept Subscriptions from Investors when the MonarkStage field is set to PRIMARY_FUNDRAISE
+		List<PreIPOCompanySPV> preIPOCompanySPVs = getAllPreIPOCompanySPVs(investorId);
+		PreIPOCompanySPV preIPOCompanySPV = choosePreIPOCompanySPV(preIPOCompanySPVs);
+		log.info("PreIPOCompanySPV: {}", preIPOCompanySPV);
+
+		// Step 1.1: Calculate the Subscription Amount based on the subscription rules
+		SubscriptionAmount amount = SubscriptionCalculator.calculateSubscriptionAmount(preIPOCompanySPV);
+
+		// Step 2: Create a Transaction for the investor subscription to the PreIPOCompanySPV
+		CreateTransaction createTransaction = CreateTransaction.builder()
+				.targetAssetType(CreateTransaction.TargetAssetTypeEnum.PRE_IPO_COMPANY_SPV)
+				.targetId(preIPOCompanySPV.getId())
+				.side(CreateTransaction.SideEnum.SUBSCRIPTION)
+				.investorId(investorId)
+				.amountReservedDollars(amount.amountReservedDollars)
+				.build();
+		Transaction transaction = createTransaction(createTransaction);
+		log.info("Transaction: {}", transaction);
+
+		// Step 3: Reject the transaction
+		Transaction rejectTransaction = rejectTransaction(transaction);
+		log.info("Transaction rejected: {}", rejectTransaction);
+		return rejectTransaction;
+	}
+
 	private static PreIPOCompanySPV choosePreIPOCompanySPV(List<PreIPOCompanySPV> preIPOCompanySPVS) {
 		List<PreIPOCompanySPV> eligibleSPVs = preIPOCompanySPVS.stream()
 				.filter(spv -> spv.getRemainingShareAllocation() > 0 &&
@@ -229,6 +261,15 @@ public class InvestorSubscriptionTransactionRecipes {
 		try {
 			log.info("Get transaction by id: {}", transactionId);
 			return transactionApi.getTransactionById(transactionId, true);
+		} catch (ApiException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	private static Transaction rejectTransaction(Transaction transaction) {
+		try {
+			log.info("Reject transaction by id: {}", transaction.getId());
+			return transactionApi.rejectTransaction(transaction.getId(), transaction.getTargetAssetType().getValue(), null);
 		} catch (ApiException e) {
 			throw new RuntimeException(e);
 		}

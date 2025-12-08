@@ -1,14 +1,13 @@
 package com.monarkmarkets;
 
-import com.monarkmarkets.primary.client.model.IndicationOfInterest;
 import com.monarkmarkets.primary.client.model.IndicationOfInterestV2;
 import com.monarkmarkets.primary.client.model.Investor;
 import com.monarkmarkets.primary.client.model.Transaction;
 import lombok.extern.slf4j.Slf4j;
 
-import static com.monarkmarkets.IndicationOfInterestRecipes.submitIndicationOfInterest;
 import static com.monarkmarkets.IndicationOfInterestRecipesV2.submitIndicationOfInterestV2;
 import static com.monarkmarkets.InvestorRecipes.investorOnboarding;
+import static com.monarkmarkets.InvestorSubscriptionTransactionRecipes.submitAndRejectInvestorSubscription;
 import static com.monarkmarkets.InvestorSubscriptionTransactionRecipes.submitInvestorSubscription;
 import static com.monarkmarkets.PostCloseAccountViewRecipes.postCloseAccountView;
 import static com.monarkmarkets.RegisteredFundTransactionRecipes.submitRegisteredFundSubscription;
@@ -38,6 +37,10 @@ public class Recipes {
 		// Execute Investor Subscription using new Transaction API
 		Transaction investorSubscriptionTransaction = submitInvestorSubscription(investor.getId());
 		log.info("InvestorSubscriptionTransaction: {}", investorSubscriptionTransaction);
+
+		// Reject Investor Subscription
+		Transaction rejectedInvestorSubscriptionTransaction = submitAndRejectInvestorSubscription(investor.getId());
+		log.info("Rejected InvestorSubscriptionTransaction: {}", rejectedInvestorSubscriptionTransaction);
 
 		// Execute Post-Close Account View
 		postCloseAccountView(investor.getId());
