@@ -80,12 +80,7 @@ public class RegisteredFundTransactionRecipes {
 		Transaction transaction = createTransaction(createTransaction);
 		log.info("Successfully created Transaction: {}", transaction);
 
-		// Step 4: PDF Preview Generation (commented out - not yet confirmed where this moved)
-		// UUID transactionId = transaction.getId();
-		// File subscriptionPreviewPdf = createSubscriptionPreviewPdf(transactionId);
-		// log.info("Successfully generated subscription preview. PDF location: {}", subscriptionPreviewPdf.getAbsolutePath());
-
-		// Step 5: Get all transaction actions
+		// Step 4: Get all transaction actions
 		List<TransactionAction> transactionActions = getAllTransactionActions(transaction.getId());
 		log.info("TransactionActions: {}", transactionActions);
 
