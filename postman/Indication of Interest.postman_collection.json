@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "primary-offerings-ioi-collection",
 		"name": "Indication of Interest",
-		"description": "Postman collection for submitting Indications of Interest (IOI) through the Primary Offerings V2 API.\n\n**Sections:**\n1. Investor Onboarding (Get Financial Institutions, Get/Create Investor, Create Financial Advisor)\n2. Submit PreIPOCompany IOI (Get PreIPO Companies, Create IOI for Company)\n3. Submit RegisteredFund IOI (Get Registered Funds, Create IOI for Fund)\n\nThe V2 API supports multiple asset types using `targetId` and `targetAssetType` fields:\n- PreIPOCompany\n- RegisteredFund\n\n**Setup:**\n1. Import the environment file: Indication of Interest.postman_environment.json\n2. Set `baseUrl` and `apiKey` in the environment\n3. Run manually (click Send on each request) OR use Collection Runner (Ctrl/Cmd+R)",
+		"description": "Postman collection for submitting Indications of Interest (IOI) through the Primary Offerings V2 API.\n\n**Sections:**\n1. Investor Onboarding (Get Financial Institutions, Get/Create Investor, Create Financial Advisor)\n2. Submit PreIPOCompany IOI (Get PreIPO Companies, Create IOI for Company)\n3. Submit RegisteredFund IOI (Get Registered Funds, Create IOI for Fund)\n4. Submit ProspectiveOffering (Deal) IOI (Get Deals, Create IOI for Deal)\n\nThe V2 API supports multiple asset types using `targetId` and `targetAssetType` fields:\n- PreIPOCompany\n- RegisteredFund\n- ProspectiveOffering\n\n**Setup:**\n1. Import the environment file: Indication of Interest.postman_environment.json\n2. Set `baseUrl` and `apiKey` in the environment\n3. Run manually (click Send on each request) OR use Collection Runner (Ctrl/Cmd+R)",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"auth": {
@@ -34,6 +34,9 @@
 					"        'allRegisteredFunds',",
 					"        'selectedRegisteredFundId',",
 					"        'selectedRegisteredFundName',",
+					"        'allProspectiveOfferings',",
+					"        'selectedProspectiveOfferingId',",
+					"        'selectedProspectiveOfferingName',",
 					"        'ioiId',",
 					"        'numberOfClients'",
 					"    ];",
@@ -50,9 +53,10 @@
 			"script": {
 				"type": "text/javascript",
 				"exec": [
-					"// Check if this is the last request in either IOI workflow",
+					"// Check if this is the last request in any IOI workflow",
 					"const isCompanyIOIComplete = pm.info.requestName === '2. Create IOI for PreIPO Company';",
 					"const isRegisteredFundIOIComplete = pm.info.requestName === '2. Create IOI for Registered Fund';",
+					"const isProspectiveOfferingIOIComplete = pm.info.requestName === '2. Create IOI for Prospective Offering (Deal)';",
 					"",
 					"if (isCompanyIOIComplete) {",
 					"    console.log('');",
@@ -75,6 +79,18 @@
 					"    console.log('Investor Name:', pm.collectionVariables.get('investorName'));",
 					"    console.log('Target Fund:', pm.collectionVariables.get('selectedRegisteredFundName'));",
 					"    console.log('Target Asset Type: RegisteredFund');",
+					"    console.log('Notional Amount:', pm.collectionVariables.get('ioiNotionalAmount'));",
+					"    console.log('IOI ID:', pm.collectionVariables.get('ioiId'));",
+					"    console.log('='.repeat(70));",
+					"} else if (isProspectiveOfferingIOIComplete) {",
+					"    console.log('');",
+					"    console.log('='.repeat(70));",
+					"    console.log('PROSPECTIVE OFFERING (DEAL) IOI SUBMISSION COMPLETED (V2 API)');",
+					"    console.log('='.repeat(70));",
+					"    console.log('Investor ID:', pm.collectionVariables.get('investorId'));",
+					"    console.log('Investor Name:', pm.collectionVariables.get('investorName'));",
+					"    console.log('Target Deal:', pm.collectionVariables.get('selectedProspectiveOfferingName'));",
+					"    console.log('Target Asset Type: ProspectiveOffering');",
 					"    console.log('Notional Amount:', pm.collectionVariables.get('ioiNotionalAmount'));",
 					"    console.log('IOI ID:', pm.collectionVariables.get('ioiId'));",
 					"    console.log('='.repeat(70));",
@@ -961,6 +977,235 @@
 				}
 			],
 			"description": "Complete Registered Fund IOI submission workflow",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [""]
+					}
+				}
+			]
+		},
+		{
+			"name": "4. Submit ProspectiveOffering (Deal) IOI",
+			"item": [
+				{
+					"name": "1. Get All Prospective Offerings (Deals)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.collectionVariables.get('financialInstitutionId')) {",
+									"    throw new Error('financialInstitutionId is required. Run \"1.1 Get All Financial Institutions\" first.');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"if (response && response.items && response.items.length > 0) {",
+									"    // Store all prospective offerings",
+									"    pm.collectionVariables.set('allProspectiveOfferings', JSON.stringify(response.items));",
+									"    ",
+									"    console.log('='.repeat(50));",
+									"    console.log('AVAILABLE PROSPECTIVE OFFERINGS (DEALS)');",
+									"    console.log('='.repeat(50));",
+									"    console.log(`Total Deals: ${response.items.length}`);",
+									"    console.log('');",
+									"    ",
+									"    response.items.forEach((deal, index) => {",
+									"        console.log(`[${index + 1}] ${deal.targetName}`);",
+									"        console.log(`    Deal ID: ${deal.id}`);",
+									"        console.log(`    Target ID: ${deal.targetId}`);",
+									"        console.log(`    Target Asset Type: ${deal.targetAssetType}`);",
+									"        console.log(`    Structure: ${deal.structure || 'N/A'}`);",
+									"        console.log(`    Min Investment: ${deal.minimumInvestment || 'N/A'}`);",
+									"        if (deal.estimatedValuationText) {",
+									"            console.log(`    Est. Valuation: ${deal.estimatedValuationText}`);",
+									"        }",
+									"        if (deal.estimatedPricePerShareText) {",
+									"            console.log(`    Est. Price/Share: ${deal.estimatedPricePerShareText}`);",
+									"        }",
+									"        console.log('');",
+									"    });",
+									"    ",
+									"    // Auto-select the first deal for convenience",
+									"    if (response.items[0]) {",
+									"        pm.collectionVariables.set('selectedProspectiveOfferingId', response.items[0].id);",
+									"        pm.collectionVariables.set('selectedProspectiveOfferingName', response.items[0].targetName);",
+									"        console.log('Auto-selected deal for IOI:', response.items[0].targetName);",
+									"        console.log('Deal ID:', response.items[0].id);",
+									"        console.log('To select a different deal, update the \"selectedProspectiveOfferingId\" collection variable.');",
+									"    }",
+									"    ",
+									"    console.log('='.repeat(50));",
+									"    ",
+									"    // Display pagination info",
+									"    if (response.pagination) {",
+									"        console.log('Pagination:', `Page ${response.pagination.currentPage} of ${response.pagination.totalPages}`);",
+									"    }",
+									"} else {",
+									"    console.error('No Prospective Offerings (Deals) found');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/primary/v1/prospective-offering/financial-institution/{{financialInstitutionId}}?targetAssetType=PreIPOCompany&page=1&pageSize=100",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"primary",
+								"v1",
+								"prospective-offering",
+								"financial-institution",
+								"{{financialInstitutionId}}"
+							],
+							"query": [
+								{
+									"key": "targetAssetType",
+									"value": "PreIPOCompany",
+									"description": "Filter by underlying asset type (PreIPOCompany or RegisteredFund)"
+								},
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number (starts at 1)"
+								},
+								{
+									"key": "pageSize",
+									"value": "100",
+									"description": "Number of items per page"
+								},
+								{
+									"key": "searchTerm",
+									"value": "",
+									"disabled": true,
+									"description": "Optional search term to filter by target name"
+								},
+								{
+									"key": "sortOrder",
+									"value": "Descending",
+									"disabled": true,
+									"description": "Sort order (Ascending or Descending)"
+								},
+								{
+									"key": "sortProperty",
+									"value": "CreatedAt",
+									"disabled": true,
+									"description": "Sort by property (CreatedAt, UpdatedAt, CompanyName, etc.)"
+								}
+							]
+						},
+						"description": "Retrieve all available Prospective Offerings (Deals) for your financial institution.\n\n**Note:** This endpoint requires `financialInstitutionId` - run \"1.1 Get All Financial Institutions\" first.\n\nThe response will auto-select the first deal, but you can manually change the selection by updating the `selectedProspectiveOfferingId` collection variable.\n\n**Query Parameters:**\n- `targetAssetType`: Filter deals by underlying asset type (PreIPOCompany or RegisteredFund)\n- `searchTerm`: Search by target name\n- `sortProperty`: Sort by CreatedAt, UpdatedAt, CompanyName, PricePerShare, AvailableVolume, or ClosingDate"
+					},
+					"response": []
+				},
+				{
+					"name": "2. Create IOI for Prospective Offering (Deal)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const investorId = pm.collectionVariables.get('investorId');",
+									"const dealId = pm.collectionVariables.get('selectedProspectiveOfferingId');",
+									"",
+									"if (!investorId) {",
+									"    throw new Error('investorId is required. Run Investor Onboarding first.');",
+									"}",
+									"",
+									"if (!dealId) {",
+									"    throw new Error('selectedProspectiveOfferingId is required. Run \"Get All Prospective Offerings (Deals)\" first.');",
+									"}",
+									"",
+									"// Set default notional amount if not already set",
+									"if (!pm.collectionVariables.get('ioiNotionalAmount')) {",
+									"    pm.collectionVariables.set('ioiNotionalAmount', 5000.00);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 201', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"if (response && response.id) {",
+									"    pm.collectionVariables.set('ioiId', response.id);",
+									"    ",
+									"    console.log('='.repeat(50));",
+									"    console.log('IOI CREATED SUCCESSFULLY (V2 API)');",
+									"    console.log('='.repeat(50));",
+									"    console.log('IOI ID:', response.id);",
+									"    console.log('Investor ID:', response.investorId);",
+									"    console.log('Target ID:', response.targetId);",
+									"    console.log('Target Asset Type:', response.targetAssetType);",
+									"    console.log('Target Name:', response.targetName || 'N/A');",
+									"    console.log('Notional Amount:', response.notionalAmount, response.currency);",
+									"    console.log('Status:', response.status || 'N/A');",
+									"    console.log('Created At:', response.createdAt);",
+									"    console.log('='.repeat(50));",
+									"} else {",
+									"    console.error('Failed to create IOI');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"investorId\": \"{{investorId}}\",\n\t\"targetId\": \"{{selectedProspectiveOfferingId}}\",\n\t\"targetAssetType\": \"ProspectiveOffering\",\n\t\"notionalAmount\": {{ioiNotionalAmount}},\n\t\"currency\": \"USD\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/primary/v2/indication-of-interest",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"primary",
+								"v2",
+								"indication-of-interest"
+							]
+						},
+						"description": "Create an Indication of Interest for the selected Prospective Offering (Deal) using the V2 API.\n\nThe V2 API uses `targetId` and `targetAssetType: ProspectiveOffering` to specify the deal target.\n\n**Important:** The `targetId` is the Prospective Offering ID (deal ID), NOT the underlying company or fund ID. The API will automatically resolve the target name from the associated prospective offering.\n\nThe notional amount defaults to $5,000 USD but can be changed by updating the `ioiNotionalAmount` collection variable."
+					},
+					"response": []
+				}
+			],
+			"description": "Complete Prospective Offering (Deal) IOI submission workflow.\n\n**What is a Prospective Offering (Deal)?**\nA Prospective Offering represents a specific investment opportunity or deal associated with an underlying PreIPO Company or Registered Fund. Unlike submitting an IOI directly for a company or fund, submitting an IOI for a Prospective Offering allows you to express interest in a specific deal structure.\n\n**Prerequisites:**\n1. Complete Investor Onboarding (Section 1) to get `investorId` and `financialInstitutionId`\n2. The `financialInstitutionId` is required to fetch available deals",
 			"event": [
 				{
 					"listen": "prerequest",
