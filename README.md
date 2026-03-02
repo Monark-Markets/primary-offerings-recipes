@@ -56,9 +56,31 @@ git merge --no-ff main
 git push origin public-main
 ```
 
-### **3️⃣ Push `public-main` to the Public Repo**
+### **3️⃣ Push to the Public Repo via Pull Request**
+
+Since the public repo's `main` branch is protected, you need to push to a temporary branch and create a PR:
+
 ```sh
-git push public public-main:main
+# Push public-main to a new branch on the public repo
+git push public public-main:sync/update-recipes
+
+# Create a PR in the public repo (requires gh CLI)
+gh pr create --repo Monark-Markets/primary-offerings-recipes \
+  --head sync/update-recipes --base main \
+  --title "Sync recipes from internal repo" \
+  --body "Sync latest recipe changes from the internal repository."
+```
+
+Then merge the PR on GitHub (or via CLI):
+
+```sh
+gh pr merge --repo Monark-Markets/primary-offerings-recipes --merge
+```
+
+After merging, clean up the remote branch:
+
+```sh
+git push public --delete sync/update-recipes
 ```
 
 🚀 **Result:** The new recipe is now **available in the public repo**.
@@ -114,24 +136,34 @@ This configuration must be placed in the `.gitattributes` file **in the `public-
 
 ## ⛔ **Excluding Specific Files from Public Repo**
 
-Some files (e.g., CI/CD workflows) exist in `main` but should **never be merged** into `public-main`. To prevent this:
+Some files (e.g., CI/CD workflows, Postman collections) exist in `main` but should **never be merged** into `public-main`. To prevent this:
 
-1. Remove the file from `public-main`:
+1. Remove the file/directory from `public-main`:
    ```sh
    git checkout public-main
-   git rm --cached .github/workflows/recipes-daily-build.yml
-   git commit -m "Remove internal workflow from public-main"
+   git rm --cached -r <path>
+   git commit -m "Remove <path> from public-main"
    ```
 
-2. Add it to `.gitignore` in `public-main`:
+2. Add it to `.gitignore` in `public-main` (prevents it from being re-tracked):
    ```
-   .github/workflows/recipes-daily-build.yml
+   <path>
    ```
 
-3. Optionally protect it further in `.gitattributes`:
+3. Add it to `.gitattributes` in `public-main` (prevents merge conflicts):
    ```
-   .github/workflows/recipes-daily-build.yml merge=ours
+   <path> merge=ours
    ```
+
+### Currently excluded from `public-main`
+
+| Path | Reason |
+|------|--------|
+| `**/internal/**` | Internal-only recipes |
+| `.github/workflows/recipes-daily-build.yml` | Internal CI/CD |
+| `postman/` | Internal Postman collections |
+| `README.md` | Public repo has its own README |
+| `.gitignore` | Public repo has its own .gitignore |
 
 ---
 
@@ -151,29 +183,37 @@ Some files (e.g., CI/CD workflows) exist in `main` but should **never be merged*
    git push origin public-main
    ```
 
-3. **Push to the public repo:**
+3. **Push to the public repo via PR:**
    ```sh
-   git push public public-main:main
+   git push public public-main:sync/update-recipes
+   gh pr create --repo Monark-Markets/primary-offerings-recipes \
+     --head sync/update-recipes --base main \
+     --title "Sync recipes from internal repo" \
+     --body "Sync latest recipe changes from the internal repository."
+   # After merging the PR:
+   git push public --delete sync/update-recipes
    ```
 
 ---
 
 ## 🧨 Handling Diverged History in Public Repo
 
-Sometimes the public repo's `main` branch gets out of sync with `public-main`. If you get a non-fast-forward error when pushing:
+Since the public repo's `main` branch is protected, you cannot force-push to it. If `public-main` and the public repo's `main` diverge (e.g., due to Dependabot PRs merged directly on the public repo), you need to reconcile them:
 
-```sh
-git push public public-main:main
-# → error: failed to push some refs to ...
-```
+1. **Fetch the latest from the public repo:**
+   ```sh
+   git fetch public
+   ```
 
-To resolve it (⚠️ only if you're sure `public-main` is the correct version):
+2. **Merge the public repo's main into public-main:**
+   ```sh
+   git checkout public-main
+   git merge public/main
+   # Resolve any conflicts, then:
+   git push origin public-main
+   ```
 
-```sh
-git push public public-main:main --force
-```
-
-This will **overwrite** the public repo's `main` branch with the contents of `public-main`.
+3. **Then proceed with the normal sync workflow** (merge `main` into `public-main`, push via PR).
 
 ---
 
