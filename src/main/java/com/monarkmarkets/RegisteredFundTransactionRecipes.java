@@ -488,7 +488,7 @@ public class RegisteredFundTransactionRecipes {
 	private static Questionnaire getQuestionnaireById(UUID questionnaireId, UUID investorId) {
 		try {
 			log.info("Get questionnaire by id: {} for investor: {}", questionnaireId, investorId);
-			return questionnaireApi.getQuestionnaireById(questionnaireId, investorId);
+			return questionnaireApi.getQuestionnaireById(questionnaireId, investorId, null);
 		} catch (ApiException e) {
 			throw new RuntimeException(e);
 		}
