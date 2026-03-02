@@ -136,3 +136,4 @@ data/**
 dependency-reduced-pom.xml
 .github/workflows/recipes-daily-build.yml
 **/internal/**
+postman/
