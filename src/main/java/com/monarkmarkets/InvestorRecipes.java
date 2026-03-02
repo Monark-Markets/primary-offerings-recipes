@@ -42,7 +42,7 @@ public class InvestorRecipes {
 			new RandomStringGenerator.Builder()
 					.withinRange('0', '9')
 					.filteredBy(DIGITS)
-					.build();
+					.get();
 
 	private static final QuestionnaireAnswerApi questionnaireAnswerApi = ApiFactory.getQuestionnaireAnswerApi();
 	private static final FinancialAdvisorApi financialAdvisorApi = ApiFactory.getFinancialAdvisorApi();
@@ -277,7 +277,7 @@ public class InvestorRecipes {
 	private static List<FinancialInstitution> getAllFinancialInstitutions() {
 		try {
 			FinancialInstitutionApiResponse financialInstitutionResponse = financialInstitutionApi
-					.getAllFinancialInstitutions(null, null, null, null);
+					.getAllFinancialInstitutions(null, null, null, null, null);
 			return financialInstitutionResponse.getItems();
 		} catch (ApiException e) {
 			throw new RuntimeException(e);
@@ -346,7 +346,7 @@ public class InvestorRecipes {
 		RandomStringGenerator generator = new RandomStringGenerator.Builder()
 				.withinRange('a', 'z')
 				.filteredBy(LETTERS)
-				.build();
+				.get();
 		return "investor." + generator.generate(8) + "@example.com";
 	}
 
