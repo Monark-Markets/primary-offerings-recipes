@@ -1,16 +1,16 @@
 package com.monarkmarkets;
 
-import com.monarkmarkets.primary.client.model.IndicationOfInterest;
+import com.monarkmarkets.primary.client.model.IndicationOfInterestV2;
 import com.monarkmarkets.primary.client.model.Investor;
-import com.monarkmarkets.primary.client.model.InvestorSubscription;
-import com.monarkmarkets.primary.client.model.RegisteredFundSubscription;
+import com.monarkmarkets.primary.client.model.Transaction;
 import lombok.extern.slf4j.Slf4j;
 
-import static com.monarkmarkets.IndicationOfInterestRecipes.submitIndicationOfInterest;
+import static com.monarkmarkets.IndicationOfInterestRecipesV2.submitIndicationOfInterestV2;
 import static com.monarkmarkets.InvestorRecipes.investorOnboarding;
-import static com.monarkmarkets.InvestorSubscriptionRecipes.submitInvestorSubscription;
+import static com.monarkmarkets.InvestorSubscriptionTransactionRecipes.submitAndRejectInvestorSubscription;
+import static com.monarkmarkets.InvestorSubscriptionTransactionRecipes.submitInvestorSubscription;
 import static com.monarkmarkets.PostCloseAccountViewRecipes.postCloseAccountView;
-import static com.monarkmarkets.RegisteredFundRecipes.submitRegisteredFundSubscription;
+import static com.monarkmarkets.RegisteredFundTransactionRecipes.submitRegisteredFundSubscription;
 
 @Slf4j
 public class Recipes {
@@ -30,19 +30,24 @@ public class Recipes {
 		log.info("Investor: {}", investor);
 
 		// Execute Submission of Indication of Interest
-		IndicationOfInterest indicationOfInterest = submitIndicationOfInterest(investor.getInvestorReferenceId());
+		IndicationOfInterestV2 indicationOfInterest = submitIndicationOfInterestV2(investor.getInvestorReferenceId());
+
 		log.info("IndicationOfInterest: {}", indicationOfInterest);
 
-		// Execute Investor Subscription
-		InvestorSubscription investorSubscription = submitInvestorSubscription(investor.getId());
-		log.info("InvestorSubscription: {}", investorSubscription);
+		// Execute Investor Subscription using new Transaction API
+		Transaction investorSubscriptionTransaction = submitInvestorSubscription(investor.getId());
+		log.info("InvestorSubscriptionTransaction: {}", investorSubscriptionTransaction);
+
+		// Reject Investor Subscription
+		Transaction rejectedInvestorSubscriptionTransaction = submitAndRejectInvestorSubscription(investor.getId());
+		log.info("Rejected InvestorSubscriptionTransaction: {}", rejectedInvestorSubscriptionTransaction);
 
 		// Execute Post-Close Account View
 		postCloseAccountView(investor.getId());
 		log.info("Post-Close Account View completed for Investor ID: {}", investor.getId());
 
-		// Execute Registered Fund Subscription
-		RegisteredFundSubscription registeredFundSubscription = submitRegisteredFundSubscription(investor.getId());
-		log.info("RegisteredFundSubscription: {}", registeredFundSubscription);
+		// Execute Registered Fund Subscription using new Transaction API
+		Transaction registeredFundTransaction = submitRegisteredFundSubscription(investor.getId());
+		log.info("RegisteredFundTransaction: {}", registeredFundTransaction);
 	}
 }

@@ -4,6 +4,7 @@ import com.monarkmarkets.primary.client.api.DocumentApi;
 import com.monarkmarkets.primary.client.api.FinancialAdvisorApi;
 import com.monarkmarkets.primary.client.api.FinancialInstitutionApi;
 import com.monarkmarkets.primary.client.api.IndicationOfInterestApi;
+import com.monarkmarkets.primary.client.api.IndicationOfInterestControllerV2Api;
 import com.monarkmarkets.primary.client.api.InvestorApi;
 import com.monarkmarkets.primary.client.api.InvestorSubscriptionActionApi;
 import com.monarkmarkets.primary.client.api.InvestorSubscriptionApi;
@@ -12,8 +13,8 @@ import com.monarkmarkets.primary.client.api.PreIpoCompanySpvApi;
 import com.monarkmarkets.primary.client.api.QuestionnaireAnswerApi;
 import com.monarkmarkets.primary.client.api.QuestionnaireApi;
 import com.monarkmarkets.primary.client.api.RegisteredFundApi;
-import com.monarkmarkets.primary.client.api.RegisteredFundSubscriptionActionApi;
-import com.monarkmarkets.primary.client.api.RegisteredFundSubscriptionApi;
+import com.monarkmarkets.primary.client.api.TransactionActionApi;
+import com.monarkmarkets.primary.client.api.TransactionApi;
 import com.monarkmarkets.primary.client.api.VersionApi;
 import com.monarkmarkets.primary.client.invoker.ApiClient;
 import com.monarkmarkets.primary.client.invoker.Configuration;
@@ -28,6 +29,7 @@ public class ApiFactory {
 	private static InvestorApi investorApi;
 	private static PreIpoCompanyApi preIpoCompanyApi;
 	private static IndicationOfInterestApi indicationOfInterestApi;
+	private static IndicationOfInterestControllerV2Api indicationOfInterestControllerV2Api;
 	private static QuestionnaireApi questionnaireApi;
 	private static QuestionnaireAnswerApi questionnaireAnswerApi;
 	private static PreIpoCompanySpvApi preIpoCompanySpvApi;
@@ -36,8 +38,8 @@ public class ApiFactory {
 	private static DocumentApi documentApi;
 	private static FinancialAdvisorApi financialAdvisorApi;
 	private static RegisteredFundApi registeredFundApi;
-	private static RegisteredFundSubscriptionApi registeredFundSubscriptionApi;
-	private static RegisteredFundSubscriptionActionApi registeredFundSubscriptionActionApi;
+	private static TransactionApi transactionApi;
+	private static TransactionActionApi transactionActionApi;
 	private static FinancialInstitutionApi financialInstitutionApi;
 	private static VersionApi versionApi;
 
@@ -74,6 +76,14 @@ public class ApiFactory {
 			indicationOfInterestApi = new IndicationOfInterestApi(apiClient);
 		}
 		return indicationOfInterestApi;
+	}
+
+	@Synchronized
+	public static IndicationOfInterestControllerV2Api getIndicationOfInterestControllerV2Api() {
+		if (indicationOfInterestControllerV2Api == null) {
+			indicationOfInterestControllerV2Api = new IndicationOfInterestControllerV2Api(apiClient);
+		}
+		return indicationOfInterestControllerV2Api;
 	}
 
 	@Synchronized
@@ -141,19 +151,19 @@ public class ApiFactory {
 	}
 
 	@Synchronized
-	public static RegisteredFundSubscriptionApi getRegisteredFundSubscriptionApi() {
-		if (registeredFundSubscriptionApi == null) {
-			registeredFundSubscriptionApi = new RegisteredFundSubscriptionApi(apiClient);
+	public static TransactionApi getTransactionApi() {
+		if (transactionApi == null) {
+			transactionApi = new TransactionApi(apiClient);
 		}
-		return registeredFundSubscriptionApi;
+		return transactionApi;
 	}
 
 	@Synchronized
-	public static RegisteredFundSubscriptionActionApi getRegisteredFundSubscriptionActionApi() {
-		if (registeredFundSubscriptionActionApi == null) {
-			registeredFundSubscriptionActionApi = new RegisteredFundSubscriptionActionApi(apiClient);
+	public static TransactionActionApi getTransactionActionApi() {
+		if (transactionActionApi == null) {
+			transactionActionApi = new TransactionActionApi(apiClient);
 		}
-		return registeredFundSubscriptionActionApi;
+		return transactionActionApi;
 	}
 
 	@Synchronized
