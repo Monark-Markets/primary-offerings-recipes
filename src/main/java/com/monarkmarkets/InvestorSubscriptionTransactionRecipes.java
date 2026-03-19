@@ -115,11 +115,11 @@ public class InvestorSubscriptionTransactionRecipes {
 	 * This flow describes the creation and rejection of a Subscription on the primary market using the new unified
 	 * Transaction API.
 	 */
-	public static Transaction submitAndRejectInvestorSubscription(UUID investorId) {
+	public static Transaction submitAndRejectInvestorSubscription(UUID investorId, UUID excludeSpvId) {
 		// Step 1: Get a PreIPOCompanySPV
 		// SPVs can only accept Subscriptions from Investors when the MonarkStage field is set to PRIMARY_FUNDRAISE
 		List<PreIPOCompanySPV> preIPOCompanySPVs = getAllPreIPOCompanySPVs(investorId);
-		PreIPOCompanySPV preIPOCompanySPV = choosePreIPOCompanySPV(preIPOCompanySPVs);
+		PreIPOCompanySPV preIPOCompanySPV = choosePreIPOCompanySPV(preIPOCompanySPVs, excludeSpvId);
 		log.info("PreIPOCompanySPV: {}", preIPOCompanySPV);
 
 		// Step 1.1: Calculate the Subscription Amount based on the subscription rules
@@ -143,12 +143,17 @@ public class InvestorSubscriptionTransactionRecipes {
 	}
 
 	private static PreIPOCompanySPV choosePreIPOCompanySPV(List<PreIPOCompanySPV> preIPOCompanySPVS) {
+		return choosePreIPOCompanySPV(preIPOCompanySPVS, null);
+	}
+
+	private static PreIPOCompanySPV choosePreIPOCompanySPV(List<PreIPOCompanySPV> preIPOCompanySPVS, UUID excludeSpvId) {
 		List<PreIPOCompanySPV> eligibleSPVs = preIPOCompanySPVS.stream()
 				.filter(spv -> spv.getRemainingShareAllocation() > 0 &&
 						spv.getRemainingDollarAllocation() > 0 &&
 						spv.getNumberOfSeatsRemaining() > 0 &&
 						spv.getMonarkStage() == PRIMARY_FUNDRAISE &&
 						TRUE.equals(spv.getIsApproved()))
+				.filter(spv -> excludeSpvId == null || !excludeSpvId.equals(spv.getId()))
 				.toList();
 
 		if (eligibleSPVs.isEmpty()) {
