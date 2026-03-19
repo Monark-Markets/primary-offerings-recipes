@@ -9,6 +9,8 @@ import static com.monarkmarkets.IndicationOfInterestRecipesV2.submitIndicationOf
 import static com.monarkmarkets.InvestorRecipes.investorOnboarding;
 import static com.monarkmarkets.InvestorSubscriptionTransactionRecipes.submitAndRejectInvestorSubscription;
 import static com.monarkmarkets.InvestorSubscriptionTransactionRecipes.submitInvestorSubscription;
+
+import java.util.UUID;
 import static com.monarkmarkets.PostCloseAccountViewRecipes.postCloseAccountView;
 import static com.monarkmarkets.RegisteredFundTransactionRecipes.submitRegisteredFundSubscription;
 
@@ -38,8 +40,9 @@ public class Recipes {
 		Transaction investorSubscriptionTransaction = submitInvestorSubscription(investor.getId());
 		log.info("InvestorSubscriptionTransaction: {}", investorSubscriptionTransaction);
 
-		// Reject Investor Subscription
-		Transaction rejectedInvestorSubscriptionTransaction = submitAndRejectInvestorSubscription(investor.getId());
+		// Reject Investor Subscription (exclude the SPV used above to avoid 409 conflict)
+		UUID usedSpvId = investorSubscriptionTransaction.getTargetId();
+		Transaction rejectedInvestorSubscriptionTransaction = submitAndRejectInvestorSubscription(investor.getId(), usedSpvId);
 		log.info("Rejected InvestorSubscriptionTransaction: {}", rejectedInvestorSubscriptionTransaction);
 
 		// Execute Post-Close Account View
