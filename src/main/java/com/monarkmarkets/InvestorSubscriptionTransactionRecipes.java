@@ -149,7 +149,7 @@ public class InvestorSubscriptionTransactionRecipes {
 	private static PreIPOCompanySPV choosePreIPOCompanySPV(List<PreIPOCompanySPV> preIPOCompanySPVS, UUID excludeSpvId) {
 		List<PreIPOCompanySPV> eligibleSPVs = preIPOCompanySPVS.stream()
 				.filter(spv -> spv.getRemainingShareAllocation() > 0 &&
-						spv.getRemainingDollarAllocation() > 0 &&
+						spv.getRemainingDollarAllocation() >= 1.0 &&
 						spv.getNumberOfSeatsRemaining() > 0 &&
 						spv.getMonarkStage() == PRIMARY_FUNDRAISE &&
 						TRUE.equals(spv.getIsApproved()))
