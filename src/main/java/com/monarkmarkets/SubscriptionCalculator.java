@@ -39,7 +39,7 @@ public class SubscriptionCalculator {
 		double pricePerShare = spv.getAllInPricePerShare();
 		double minCommitment = spv.getMinCommitmentAmount();
 
-		if (remainingShares <= 0.0 || remainingDollars <= 0.0 || pricePerShare <= 0.0 || minCommitment <= 0.0) {
+		if (remainingShares <= 0.0 || remainingDollars < 1.0 || pricePerShare <= 0.0 || minCommitment <= 0.0) {
 			throw new IllegalArgumentException("SPV contains invalid or insufficient data.");
 		}
 
