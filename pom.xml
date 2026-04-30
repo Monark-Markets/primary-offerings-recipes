@@ -15,7 +15,7 @@
 		<maven.compiler.release>17</maven.compiler.release>
 		<jar.finalName>${project.artifactId}-${project.version}</jar.finalName>
 
-		<httpclient-version>5.6</httpclient-version>
+		<httpclient-version>5.6.1</httpclient-version>
 		<jackson-version>2.21.1</jackson-version>
 		<jackson-annotations-version>2.21</jackson-annotations-version>
 		<jackson-databind-version>2.21.1</jackson-databind-version>
