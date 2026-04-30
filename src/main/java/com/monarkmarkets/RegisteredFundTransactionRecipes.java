@@ -147,7 +147,13 @@ public class RegisteredFundTransactionRecipes {
 									value = "No options available";
 								}
 							}
-							case BOOLEAN -> value = "true";
+							case BOOLEAN -> {
+								if (question.getOptions() != null && !question.getOptions().isEmpty()) {
+									value = question.getOptions().get(random.nextInt(question.getOptions().size()));
+								} else {
+									value = "true";
+								}
+							}
 							case DATE -> {
 								// Random date within the last year
 								LocalDate randomDate = LocalDate.now().minusDays(random.nextInt(365));
@@ -488,7 +494,7 @@ public class RegisteredFundTransactionRecipes {
 	private static Questionnaire getQuestionnaireById(UUID questionnaireId, UUID investorId) {
 		try {
 			log.info("Get questionnaire by id: {} for investor: {}", questionnaireId, investorId);
-			return questionnaireApi.getQuestionnaireById(questionnaireId, investorId, null);
+			return questionnaireApi.getQuestionnaireById(questionnaireId, investorId, null, null);
 		} catch (ApiException e) {
 			throw new RuntimeException(e);
 		}
