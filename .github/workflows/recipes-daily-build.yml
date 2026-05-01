@@ -1,5 +1,8 @@
 name: Daily API Recipes Check
 
+permissions:
+  contents: read
+
 on:
   schedule:
     - cron: '0 21 * * *'  # 21:00 UTC daily
