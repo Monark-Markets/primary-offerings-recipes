@@ -132,7 +132,13 @@ public class InvestorRecipes {
 										value = "No options available";
 									}
 								}
-								case BOOLEAN -> value = "true";
+								case BOOLEAN -> {
+									if (question.getOptions() != null && !question.getOptions().isEmpty()) {
+										value = question.getOptions().get(random.nextInt(question.getOptions().size()));
+									} else {
+										value = "true";
+									}
+								}
 								case DATE -> {
 									// Random date within the last year
 									LocalDate randomDate = LocalDate.now().minusDays(random.nextInt(365));
