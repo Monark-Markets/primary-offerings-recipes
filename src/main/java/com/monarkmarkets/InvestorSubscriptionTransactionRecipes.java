@@ -176,7 +176,7 @@ public class InvestorSubscriptionTransactionRecipes {
 			// Loop through pages
 			while (currentPage <= totalPages) {
 				log.info("Fetching page {} with pageSize {}", currentPage, pageSize);
-				PreIPOCompanySPVApiResponse response = preIpoCompanySpvApi.getAllPreIPOCompanySPVs(
+				PreIPOCompanySPVApiResponse response = preIpoCompanySpvApi.getAllPreIpoCompanySpvsForInvestor(
 						investorId,
 						null,
 						null,
