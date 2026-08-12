@@ -140,7 +140,7 @@ public class InvestorSubscriptionRecipes {
 			while (currentPage <= totalPages) {
 				log.info("Fetching page {} with pageSize {}", currentPage, pageSize);
 				PreIPOCompanySPVApiResponse response =
-						preIpoCompanySpvApi.getAllPreIPOCompanySPVs(
+						preIpoCompanySpvApi.getAllPreIpoCompanySpvsForInvestor(
 						investorId,
 						null,
 						null,
