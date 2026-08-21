@@ -8,6 +8,9 @@ import com.monarkmarkets.primary.client.api.IndicationOfInterestControllerV2Api;
 import com.monarkmarkets.primary.client.api.InvestorApi;
 import com.monarkmarkets.primary.client.api.InvestorSubscriptionActionApi;
 import com.monarkmarkets.primary.client.api.InvestorSubscriptionApi;
+import com.monarkmarkets.primary.client.api.OmnibusFundApi;
+import com.monarkmarkets.primary.client.api.OmnibusOrderApi;
+import com.monarkmarkets.primary.client.api.OmnibusShareClassApi;
 import com.monarkmarkets.primary.client.api.PreIpoCompanyApi;
 import com.monarkmarkets.primary.client.api.PreIpoCompanySpvApi;
 import com.monarkmarkets.primary.client.api.QuestionnaireAnswerApi;
@@ -41,6 +44,9 @@ public class ApiFactory {
 	private static TransactionApi transactionApi;
 	private static TransactionActionApi transactionActionApi;
 	private static FinancialInstitutionApi financialInstitutionApi;
+	private static OmnibusFundApi omnibusFundApi;
+	private static OmnibusOrderApi omnibusOrderApi;
+	private static OmnibusShareClassApi omnibusShareClassApi;
 	private static VersionApi versionApi;
 
 	public static ApiClient getConfiguredApiClient() {
@@ -172,6 +178,30 @@ public class ApiFactory {
 			financialInstitutionApi = new FinancialInstitutionApi(apiClient);
 		}
 		return financialInstitutionApi;
+	}
+
+	@Synchronized
+	public static OmnibusFundApi getOmnibusFundApi() {
+		if (omnibusFundApi == null) {
+			omnibusFundApi = new OmnibusFundApi(apiClient);
+		}
+		return omnibusFundApi;
+	}
+
+	@Synchronized
+	public static OmnibusOrderApi getOmnibusOrderApi() {
+		if (omnibusOrderApi == null) {
+			omnibusOrderApi = new OmnibusOrderApi(apiClient);
+		}
+		return omnibusOrderApi;
+	}
+
+	@Synchronized
+	public static OmnibusShareClassApi getOmnibusShareClassApi() {
+		if (omnibusShareClassApi == null) {
+			omnibusShareClassApi = new OmnibusShareClassApi(apiClient);
+		}
+		return omnibusShareClassApi;
 	}
 
 	@Synchronized
