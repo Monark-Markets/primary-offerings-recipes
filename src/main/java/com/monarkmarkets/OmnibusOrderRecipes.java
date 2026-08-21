@@ -37,6 +37,8 @@ public class OmnibusOrderRecipes {
 	);
 
 	private static final OmnibusOrderApi omnibusOrderApi = ApiFactory.getOmnibusOrderApi();
+	private static final OmnibusFundEligibilityClient omnibusFundEligibilityClient =
+			new OmnibusFundEligibilityClient();
 
 	/**
 	 * Submit two small buy orders for the supplied investor, check each order by ID,
@@ -54,9 +56,20 @@ public class OmnibusOrderRecipes {
 			throw new IllegalArgumentException("An investor with an ID is required for Omnibus order recipes.");
 		}
 
+		UUID financialInstitutionId = investor.getFinancialInstitutionId();
+		if (financialInstitutionId == null) {
+			throw new IllegalStateException(
+					"The investor must belong to a financial institution before submitting Omnibus orders.");
+		}
+
 		OmnibusFund fund = referenceData.funds().stream()
+				.filter(candidate -> omnibusFundEligibilityClient.hasTransactionAccess(
+						candidate.getId(), financialInstitutionId))
 				.findFirst()
-				.orElseThrow(() -> new IllegalStateException("No Omnibus fund is available for order recipes."));
+				.orElseThrow(() -> new IllegalStateException(
+						"No Omnibus fund is available for financial institution " + financialInstitutionId
+								+ " with transactions enabled."));
+		log.info("Selected Omnibus fund {} for financial institution {}.", fund.getId(), financialInstitutionId);
 
 		OmnibusShareClass shareClass = referenceData.shareClasses().stream()
 				.filter(candidate -> fund.getId().equals(candidate.getOmnibusFundId()))
