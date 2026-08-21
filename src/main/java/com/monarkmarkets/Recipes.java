@@ -9,6 +9,8 @@ import static com.monarkmarkets.IndicationOfInterestRecipesV2.submitIndicationOf
 import static com.monarkmarkets.InvestorRecipes.investorOnboarding;
 import static com.monarkmarkets.InvestorSubscriptionTransactionRecipes.submitAndRejectInvestorSubscription;
 import static com.monarkmarkets.InvestorSubscriptionTransactionRecipes.submitInvestorSubscription;
+import static com.monarkmarkets.OmnibusRecipes.fetchOmnibusFundsAndShareClasses;
+import static com.monarkmarkets.OmnibusOrderRecipes.submitAndCheckBuyOrders;
 
 import java.util.UUID;
 import static com.monarkmarkets.PostCloseAccountViewRecipes.postCloseAccountView;
@@ -27,9 +29,15 @@ public class Recipes {
 	}
 
 	public static void runAll(String[] args) {
+		// Fetch Omnibus funds and share classes
+		OmnibusRecipes.OmnibusReferenceData omnibusReferenceData = fetchOmnibusFundsAndShareClasses();
+
 		// Execute Investor Onboarding recipe
 		Investor investor = investorOnboarding();
 		log.info("Investor: {}", investor);
+
+		// Submit two Omnibus buy orders and verify their status and list visibility
+		submitAndCheckBuyOrders(investor, omnibusReferenceData);
 
 		// Execute Submission of Indication of Interest
 		IndicationOfInterestV2 indicationOfInterest = submitIndicationOfInterestV2(investor.getInvestorReferenceId());
