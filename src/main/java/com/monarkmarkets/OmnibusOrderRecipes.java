@@ -38,8 +38,6 @@ public class OmnibusOrderRecipes {
 	);
 
 	private static final OmnibusOrderApi omnibusOrderApi = ApiFactory.getOmnibusOrderApi();
-	private static final OmnibusFundEligibilityClient omnibusFundEligibilityClient =
-			new OmnibusFundEligibilityClient();
 
 	/**
 	 * Submit two small buy orders for the supplied investor, check each order by ID,
@@ -61,28 +59,23 @@ public class OmnibusOrderRecipes {
 			return List.of();
 		}
 
-		UUID financialInstitutionId = investor.getFinancialInstitutionId();
-		if (financialInstitutionId == null) {
+		if (investor.getFinancialInstitutionId() == null) {
 			log.warn(
 					"Skipping Omnibus order recipe: investor {} does not belong to a financial institution.",
 					investor.getId());
 			return List.of();
 		}
 
-		Optional<OmnibusFund> eligibleFund = referenceData.funds().stream()
-				.filter(candidate -> omnibusFundEligibilityClient.hasTransactionAccess(
-						candidate.getId(), financialInstitutionId))
-				.findFirst();
-		if (eligibleFund.isEmpty()) {
+		Optional<OmnibusFund> selectedFund = selectFund(referenceData);
+		if (selectedFund.isEmpty()) {
 			log.warn(
-					"Skipping Omnibus order recipe: no fund is available for financial institution {} "
-							+ "with transactions enabled.",
-					financialInstitutionId);
+					"Skipping Omnibus order recipe: no unambiguous Omnibus fund was selected. "
+							+ "Set OMNIBUS_FUND_ID when more than one fund is visible.");
 			return List.of();
 		}
 
-		OmnibusFund fund = eligibleFund.get();
-		log.info("Selected Omnibus fund {} for financial institution {}.", fund.getId(), financialInstitutionId);
+		OmnibusFund fund = selectedFund.get();
+		log.info("Selected Omnibus fund {}.", fund.getId());
 
 		Optional<OmnibusShareClass> matchingShareClass = referenceData.shareClasses() == null
 				? Optional.empty()
@@ -183,6 +176,26 @@ public class OmnibusOrderRecipes {
 		}
 
 		return orders;
+	}
+
+	private static Optional<OmnibusFund> selectFund(OmnibusReferenceData referenceData) {
+		String configuredFundId = Config.getEnv("OMNIBUS_FUND_ID", null);
+		if (configuredFundId != null && !configuredFundId.isBlank()) {
+			UUID fundId;
+			try {
+				fundId = UUID.fromString(configuredFundId);
+			} catch (IllegalArgumentException e) {
+				throw new IllegalStateException("OMNIBUS_FUND_ID must be a valid UUID.", e);
+			}
+
+			return referenceData.funds().stream()
+					.filter(candidate -> fundId.equals(candidate.getId()))
+					.findFirst();
+		}
+
+		return referenceData.funds().size() == 1
+				? Optional.of(referenceData.funds().get(0))
+				: Optional.empty();
 	}
 
 	private static CreateOmnibusOrderRequest createBuyRequest(
