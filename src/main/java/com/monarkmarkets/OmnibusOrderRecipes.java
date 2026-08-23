@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -55,27 +56,45 @@ public class OmnibusOrderRecipes {
 		if (investor == null || investor.getId() == null) {
 			throw new IllegalArgumentException("An investor with an ID is required for Omnibus order recipes.");
 		}
+		if (referenceData == null || referenceData.funds() == null || referenceData.funds().isEmpty()) {
+			log.warn("Skipping Omnibus order recipe: no Omnibus funds are available.");
+			return List.of();
+		}
 
 		UUID financialInstitutionId = investor.getFinancialInstitutionId();
 		if (financialInstitutionId == null) {
-			throw new IllegalStateException(
-					"The investor must belong to a financial institution before submitting Omnibus orders.");
+			log.warn(
+					"Skipping Omnibus order recipe: investor {} does not belong to a financial institution.",
+					investor.getId());
+			return List.of();
 		}
 
-		OmnibusFund fund = referenceData.funds().stream()
+		Optional<OmnibusFund> eligibleFund = referenceData.funds().stream()
 				.filter(candidate -> omnibusFundEligibilityClient.hasTransactionAccess(
 						candidate.getId(), financialInstitutionId))
-				.findFirst()
-				.orElseThrow(() -> new IllegalStateException(
-						"No Omnibus fund is available for financial institution " + financialInstitutionId
-								+ " with transactions enabled."));
+				.findFirst();
+		if (eligibleFund.isEmpty()) {
+			log.warn(
+					"Skipping Omnibus order recipe: no fund is available for financial institution {} "
+							+ "with transactions enabled.",
+					financialInstitutionId);
+			return List.of();
+		}
+
+		OmnibusFund fund = eligibleFund.get();
 		log.info("Selected Omnibus fund {} for financial institution {}.", fund.getId(), financialInstitutionId);
 
-		OmnibusShareClass shareClass = referenceData.shareClasses().stream()
+		Optional<OmnibusShareClass> matchingShareClass = referenceData.shareClasses() == null
+				? Optional.empty()
+				: referenceData.shareClasses().stream()
 				.filter(candidate -> fund.getId().equals(candidate.getOmnibusFundId()))
-				.findFirst()
-				.orElseThrow(() -> new IllegalStateException(
-						"No share class belongs to Omnibus fund " + fund.getId() + "."));
+				.findFirst();
+		if (matchingShareClass.isEmpty()) {
+			log.warn("Skipping Omnibus order recipe: no share class belongs to fund {}.", fund.getId());
+			return List.of();
+		}
+
+		OmnibusShareClass shareClass = matchingShareClass.get();
 
 		String externalAccountNumber = Config.getEnv(
 				"OMNIBUS_EXTERNAL_ACCOUNT_NUMBER",
