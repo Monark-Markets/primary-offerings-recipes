@@ -1,8 +1,11 @@
 package com.monarkmarkets;
 
 import com.monarkmarkets.OmnibusRecipes.OmnibusReferenceData;
+import com.monarkmarkets.primary.client.api.AccountControllerV2Api;
 import com.monarkmarkets.primary.client.api.OmnibusOrderApi;
 import com.monarkmarkets.primary.client.invoker.ApiException;
+import com.monarkmarkets.primary.client.model.Account;
+import com.monarkmarkets.primary.client.model.AccountApiResponse;
 import com.monarkmarkets.primary.client.model.CreateOmnibusOrderRequest;
 import com.monarkmarkets.primary.client.model.CreateOmnibusOrderResponse;
 import com.monarkmarkets.primary.client.model.Investor;
@@ -38,14 +41,15 @@ public class OmnibusOrderRecipes {
 	);
 
 	private static final OmnibusOrderApi omnibusOrderApi = ApiFactory.getOmnibusOrderApi();
+	private static final AccountControllerV2Api accountApi = ApiFactory.getAccountControllerV2Api();
 
 	/**
 	 * Submit two small buy orders for the supplied investor, check each order by ID,
 	 * and finally exercise the paginated order lookup.
 	 *
-	 * <p>The SDK contract requires an external account number. The optional
-	 * {@code OMNIBUS_EXTERNAL_ACCOUNT_NUMBER} override is useful when the sandbox
-	 * has a preconfigured account; otherwise the investor reference is used.</p>
+	 * <p>The SDK contract requires an account ID. The optional {@code OMNIBUS_ACCOUNT_ID}
+	 * selects a specific account, while {@code OMNIBUS_EXTERNAL_ACCOUNT_NUMBER} can
+	 * select it by its external account number.</p>
 	 */
 	public static List<OmnibusOrderResponse> submitAndCheckBuyOrders(
 			Investor investor,
@@ -89,17 +93,20 @@ public class OmnibusOrderRecipes {
 
 		OmnibusShareClass shareClass = matchingShareClass.get();
 
-		String externalAccountNumber = Config.getEnv(
-				"OMNIBUS_EXTERNAL_ACCOUNT_NUMBER",
-				investor.getInvestorReferenceId());
-		if (externalAccountNumber == null || externalAccountNumber.isBlank()) {
-			throw new IllegalStateException(
-						"OMNIBUS_EXTERNAL_ACCOUNT_NUMBER or investorReferenceId is required for Omnibus orders.");
+		Optional<Account> selectedAccount = selectAccount(investor);
+		if (selectedAccount.isEmpty()) {
+			log.warn(
+					"Skipping Omnibus order recipe: no unambiguous account was selected for investor {}. "
+							+ "Set OMNIBUS_ACCOUNT_ID or OMNIBUS_EXTERNAL_ACCOUNT_NUMBER.",
+					investor.getId());
+			return List.of();
 		}
+		Account account = selectedAccount.get();
+		log.info("Selected account {} for Omnibus orders.", account.getId());
 
 		List<CreateOmnibusOrderRequest> requests = List.of(
-				createBuyRequest(investor.getId(), externalAccountNumber, fund, shareClass, 100.00),
-				createBuyRequest(investor.getId(), externalAccountNumber, fund, shareClass, 150.00)
+				createBuyRequest(account.getId(), fund, shareClass, 100.00),
+				createBuyRequest(account.getId(), fund, shareClass, 150.00)
 		);
 
 		List<OmnibusOrderResponse> orders = new ArrayList<>();
@@ -140,6 +147,7 @@ public class OmnibusOrderRecipes {
 					1,
 					100,
 					investor.getId(),
+					account.getId(),
 					fund.getId(),
 					shareClass.getId(),
 					null,
@@ -198,17 +206,61 @@ public class OmnibusOrderRecipes {
 				: Optional.empty();
 	}
 
+	private static Optional<Account> selectAccount(Investor investor) {
+		try {
+			AccountApiResponse response = accountApi.getAccounts(1, 100, investor.getId());
+			List<Account> accounts = response.getItems() == null
+					? List.of()
+					: response.getItems().stream()
+							.filter(account -> account.getId() != null)
+							.toList();
+
+			String configuredAccountId = Config.getEnv("OMNIBUS_ACCOUNT_ID", null);
+			if (configuredAccountId != null && !configuredAccountId.isBlank()) {
+				UUID accountId;
+				try {
+					accountId = UUID.fromString(configuredAccountId);
+				} catch (IllegalArgumentException e) {
+					throw new IllegalStateException("OMNIBUS_ACCOUNT_ID must be a valid UUID.", e);
+				}
+
+				return accounts.stream()
+						.filter(account -> accountId.equals(account.getId()))
+						.findFirst();
+			}
+
+			String configuredExternalAccountNumber = Config.getEnv("OMNIBUS_EXTERNAL_ACCOUNT_NUMBER", null);
+			if (configuredExternalAccountNumber != null && !configuredExternalAccountNumber.isBlank()) {
+				return accounts.stream()
+						.filter(account -> configuredExternalAccountNumber.equals(account.getExternalAccountNumber()))
+						.findFirst();
+			}
+
+			if (accounts.size() == 1) {
+				return Optional.of(accounts.get(0));
+			}
+
+			if (investor.getInvestorReferenceId() != null && !investor.getInvestorReferenceId().isBlank()) {
+				return accounts.stream()
+						.filter(account -> investor.getInvestorReferenceId().equals(account.getExternalAccountNumber()))
+						.findFirst();
+			}
+
+			return Optional.empty();
+		} catch (ApiException e) {
+			throw new RuntimeException("Failed to fetch accounts for investor " + investor.getId(), e);
+		}
+	}
+
 	private static CreateOmnibusOrderRequest createBuyRequest(
-			UUID investorId,
-			String externalAccountNumber,
+			UUID accountId,
 			OmnibusFund fund,
 			OmnibusShareClass shareClass,
 			double notionalAmount
 	) {
 		return CreateOmnibusOrderRequest.builder()
 				.referenceId("recipes-omnibus-buy-" + UUID.randomUUID())
-				.externalAccountNumber(externalAccountNumber)
-				.investorId(investorId)
+				.accountId(accountId)
 				.omnibusFundId(fund.getId())
 				.omnibusShareClassId(shareClass.getId())
 				.side(CreateOmnibusOrderRequest.SideEnum.BUY)
