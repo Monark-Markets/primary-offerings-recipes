@@ -1,17 +1,14 @@
 package com.monarkmarkets;
 
 import com.monarkmarkets.SubscriptionCalculator.SubscriptionAmount;
-import com.monarkmarkets.primary.client.api.DocumentApi;
 import com.monarkmarkets.primary.client.api.PreIpoCompanySpvApi;
 import com.monarkmarkets.primary.client.api.TransactionActionApi;
 import com.monarkmarkets.primary.client.api.TransactionApi;
 import com.monarkmarkets.primary.client.invoker.ApiException;
 import com.monarkmarkets.primary.client.model.CreateTransaction;
-import com.monarkmarkets.primary.client.model.Document;
 import com.monarkmarkets.primary.client.model.Pagination;
 import com.monarkmarkets.primary.client.model.PreIPOCompanySPV;
 import com.monarkmarkets.primary.client.model.PreIPOCompanySPVApiResponse;
-import com.monarkmarkets.primary.client.model.SignDocument;
 import com.monarkmarkets.primary.client.model.Transaction;
 import com.monarkmarkets.primary.client.model.TransactionAction;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +27,6 @@ public class InvestorSubscriptionTransactionRecipes {
 	private static final PreIpoCompanySpvApi preIpoCompanySpvApi = ApiFactory.getPreIpoCompanySpvApi();
 	private static final TransactionApi transactionApi = ApiFactory.getTransactionApi();
 	private static final TransactionActionApi transactionActionApi = ApiFactory.getTransactionActionApi();
-	private static final DocumentApi documentApi = ApiFactory.getDocumentApi();
 
 	/**
 	 * Subscription Creation using Transaction API
@@ -90,17 +86,7 @@ public class InvestorSubscriptionTransactionRecipes {
 		List<TransactionAction> requireSigningActions = transactionActions.stream()
 				.filter(action -> action.getType() == TransactionAction.TypeEnum.DOCUMENT_SIGN)
 				.toList();
-		requireSigningActions.forEach(action -> {
-			// Get the document by id
-			Document document = getDocument(UUID.fromString(action.getDataId()));
-			log.info("Document: {}", document);
-
-			// Sign the document
-			signDocument(UUID.fromString(action.getDataId()), SignDocument.builder()
-					.investorId(investorId)
-					.metadata("SPV subscription signature " + UUID.randomUUID())
-					.build());
-		});
+		requireSigningActions.forEach(action -> completeTransactionAction(action.getId()));
 
 		// Step 7: Fetch final transaction to verify completion
 		// Note: Completing all TransactionActions automatically triggers investor/advisor signing
@@ -232,24 +218,6 @@ public class InvestorSubscriptionTransactionRecipes {
 			log.info("GetAllTransactionActions for transactionId: {}", transactionId);
 			return transactionActionApi.getAllTransactionActions(transactionId);
 		} catch (ApiException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	private static Document getDocument(UUID documentId) {
-		try {
-			log.info("Get document: {}", documentId);
-			return documentApi.getDocumentById(documentId);
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	private static void signDocument(UUID documentId, SignDocument signDocument) {
-		try {
-			log.info("Sign document: {}, signDocument: {}", documentId, signDocument);
-			documentApi.signDocument(documentId, signDocument);
-		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 	}
