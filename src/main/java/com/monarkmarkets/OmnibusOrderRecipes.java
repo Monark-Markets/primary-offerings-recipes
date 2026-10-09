@@ -31,6 +31,7 @@ public class OmnibusOrderRecipes {
 
 	private static final int STATUS_POLL_ATTEMPTS = 10;
 	private static final long STATUS_POLL_DELAY_MILLIS = 1_000L;
+	private static final double DEFAULT_BUY_AMOUNT = 100.00;
 
 	private static final EnumSet<OmnibusOrderResponse.StatusEnum> TERMINAL_STATUSES = EnumSet.of(
 			OmnibusOrderResponse.StatusEnum.EXECUTED,
@@ -104,9 +105,10 @@ public class OmnibusOrderRecipes {
 		Account account = selectedAccount.get();
 		log.info("Selected account {} for Omnibus orders.", account.getId());
 
+		double baseAmount = minimumBuyAmount(shareClass);
 		List<CreateOmnibusOrderRequest> requests = List.of(
-				createBuyRequest(account.getId(), fund, shareClass, 100.00),
-				createBuyRequest(account.getId(), fund, shareClass, 150.00)
+				createBuyRequest(account.getId(), fund, shareClass, baseAmount),
+				createBuyRequest(account.getId(), fund, shareClass, baseAmount * 1.5)
 		);
 
 		List<OmnibusOrderResponse> orders = new ArrayList<>();
@@ -250,6 +252,15 @@ public class OmnibusOrderRecipes {
 		} catch (ApiException e) {
 			throw new RuntimeException("Failed to fetch accounts for investor " + investor.getId(), e);
 		}
+	}
+
+	// Both orders go to the same share class, so the second may be checked against the
+	// subsequent minimum; use the larger of the two so either order clears validation.
+	private static double minimumBuyAmount(OmnibusShareClass shareClass) {
+		double minimum = Math.max(
+				Optional.ofNullable(shareClass.getInitialMinimumInvestment()).orElse(0.0),
+				Optional.ofNullable(shareClass.getSubsequentMinimumInvestment()).orElse(0.0));
+		return minimum > 0 ? minimum : DEFAULT_BUY_AMOUNT;
 	}
 
 	private static CreateOmnibusOrderRequest createBuyRequest(
