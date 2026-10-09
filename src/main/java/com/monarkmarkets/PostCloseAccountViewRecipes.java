@@ -77,7 +77,8 @@ public class PostCloseAccountViewRecipes {
 						currentPage,
 						pageSize,
 						false,
-						"Descending" // sortOrder
+						"Descending", // sortOrder
+						null // accountId
 				);
 
 				// Extract items and append to the result list
