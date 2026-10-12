@@ -140,6 +140,7 @@ public class InvestorSubscriptionTransactionRecipes {
 						spv.getMonarkStage() == PRIMARY_FUNDRAISE &&
 						TRUE.equals(spv.getIsApproved()))
 				.filter(spv -> excludeSpvId == null || !excludeSpvId.equals(spv.getId()))
+				.filter(spv -> !isCypressTestCompany(spv))
 				.toList();
 
 		if (eligibleSPVs.isEmpty()) {
@@ -147,6 +148,12 @@ public class InvestorSubscriptionTransactionRecipes {
 		}
 
 		return eligibleSPVs.get(current().nextInt(eligibleSPVs.size()));
+	}
+
+	// Leftover data from the Cypress e2e suite (company names like "Flow Test Company cypress1772465597719454").
+	private static boolean isCypressTestCompany(PreIPOCompanySPV spv) {
+		String companyName = spv.getPreIPOCompanyName();
+		return companyName != null && companyName.toLowerCase().contains("cypress");
 	}
 
 	private static List<PreIPOCompanySPV> getAllPreIPOCompanySPVs(UUID investorId) {
