@@ -1,5 +1,6 @@
 package com.monarkmarkets;
 
+import com.monarkmarkets.primary.client.api.AccountControllerV2Api;
 import com.monarkmarkets.primary.client.api.DocumentApi;
 import com.monarkmarkets.primary.client.api.FinancialAdvisorApi;
 import com.monarkmarkets.primary.client.api.FinancialInstitutionApi;
@@ -30,6 +31,7 @@ public class ApiFactory {
 
 	// Lazy-loaded singletons
 	private static InvestorApi investorApi;
+	private static AccountControllerV2Api accountControllerV2Api;
 	private static PreIpoCompanyApi preIpoCompanyApi;
 	private static IndicationOfInterestApi indicationOfInterestApi;
 	private static IndicationOfInterestControllerV2Api indicationOfInterestControllerV2Api;
@@ -66,6 +68,14 @@ public class ApiFactory {
 			investorApi = new InvestorApi(apiClient);
 		}
 		return investorApi;
+	}
+
+	@Synchronized
+	public static AccountControllerV2Api getAccountControllerV2Api() {
+		if (accountControllerV2Api == null) {
+			accountControllerV2Api = new AccountControllerV2Api(apiClient);
+		}
+		return accountControllerV2Api;
 	}
 
 	@Synchronized
