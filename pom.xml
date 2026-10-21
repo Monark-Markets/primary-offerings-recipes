@@ -15,21 +15,21 @@
 		<maven.compiler.release>17</maven.compiler.release>
 		<jar.finalName>${project.artifactId}-${project.version}</jar.finalName>
 
-		<httpclient-version>5.6.3</httpclient-version>
-		<jackson-version>2.22.1</jackson-version>
+		<httpclient-version>5.6.4</httpclient-version>
+		<jackson-version>2.22.3</jackson-version>
 		<jackson-annotations-version>2.22</jackson-annotations-version>
-		<jackson-databind-version>2.22.1</jackson-databind-version>
+		<jackson-databind-version>2.22.3</jackson-databind-version>
 		<jackson-databind-nullable-version>0.2.11</jackson-databind-nullable-version>
 		<jakarta-annotation-version>3.0.0</jakarta-annotation-version>
-		<lombok.version>1.18.46</lombok.version>
-		<commons-lang3.version>3.20.0</commons-lang3.version>
+		<lombok.version>1.18.48</lombok.version>
+		<commons-lang3.version>3.21.0</commons-lang3.version>
 		<commons-text.version>1.15.0</commons-text.version>
 		<httpclient5.version>5.5</httpclient5.version>
-		<httpcore5.version>5.4.3</httpcore5.version>
+		<httpcore5.version>5.4.4</httpcore5.version>
 		<dotenv-java.version>3.2.0</dotenv-java.version>
 		<slf4j-api.version>2.0.18</slf4j-api.version>
-		<logback-classic.version>1.6.3</logback-classic.version>
-		<primary-api-client.version>1.5.6.1</primary-api-client.version>
+		<logback-classic.version>1.6.4</logback-classic.version>
+		<primary-api-client.version>1.6.2.2</primary-api-client.version>
 
 		<!-- Plugins -->
 		<maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
